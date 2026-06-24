@@ -2,6 +2,7 @@ import {
   getSheetMeta,
   getValues,
   appendRow,
+  appendRows,
   updateValues,
   batchUpdate,
 } from './sheets'
@@ -94,6 +95,10 @@ async function deleteRow(tabTitle: string, range: string, id: string): Promise<v
 // --- ledger CRUD ---
 export async function addLedger(e: LedgerEntry): Promise<void> {
   await appendRow(TABS.ledger.range, ledgerToRow(e))
+}
+export async function importLedger(entries: LedgerEntry[]): Promise<void> {
+  if (entries.length === 0) return
+  await appendRows(TABS.ledger.range, entries.map(ledgerToRow))
 }
 export async function updateLedger(e: LedgerEntry): Promise<void> {
   const n = await findRowNumber(TABS.ledger.range, e.id)

@@ -75,6 +75,20 @@ export async function appendRow(
   if (!r.ok) throw httpError(`추가(${range})`, r.status)
 }
 
+export async function appendRows(
+  range: string,
+  rows: (string | number)[][],
+): Promise<void> {
+  if (rows.length === 0) return
+  const r = await authedFetch(
+    `${BASE}/${SPREADSHEET_ID}/values/${encodeURIComponent(
+      range,
+    )}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    { method: 'POST', body: JSON.stringify({ values: rows }) },
+  )
+  if (!r.ok) throw httpError(`일괄추가(${range})`, r.status)
+}
+
 export async function updateValues(
   range: string,
   values: (string | number)[][],

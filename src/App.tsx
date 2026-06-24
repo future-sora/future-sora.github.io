@@ -3,6 +3,7 @@ import { useAuth } from './auth/AuthContext'
 import { DataProvider, useData } from './data/DataContext'
 import { MonthlyView } from './components/MonthlyView'
 import { AssetsGoals } from './components/AssetsGoals'
+import { ImportCsv } from './components/ImportCsv'
 import { errMsg } from './lib/util'
 import './App.css'
 
@@ -96,7 +97,7 @@ function Shell() {
           </Suspense>
         )}
         {tab === 'assets' && <AssetsGoals />}
-        {tab === 'import' && <p className="muted">가져오기 — 준비 중 (T10)</p>}
+        {tab === 'import' && <ImportCsv />}
       </main>
     </div>
   )
