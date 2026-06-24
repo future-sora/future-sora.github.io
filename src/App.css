@@ -127,6 +127,28 @@ th {
   color: var(--muted);
 }
 
+.dash-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+.dash-controls select {
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+.rate {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.rate strong {
+  color: var(--text-h);
+}
+
 @media (max-width: 600px) {
   .entry-form {
     flex-direction: column;

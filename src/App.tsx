@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { DataProvider, useData } from './data/DataContext'
 import { MonthlyView } from './components/MonthlyView'
 import { errMsg } from './lib/util'
 import './App.css'
+
+// recharts가 무거워 대시보드는 탭 진입 시 지연 로드
+const Dashboard = lazy(() =>
+  import('./components/Dashboard').then((m) => ({ default: m.Dashboard })),
+)
 
 type Tab = 'monthly' | 'dashboard' | 'assets' | 'import'
 
@@ -84,7 +89,11 @@ function Shell() {
 
       <main className="content">
         {tab === 'monthly' && <MonthlyView />}
-        {tab === 'dashboard' && <p className="muted">대시보드 — 준비 중 (T8)</p>}
+        {tab === 'dashboard' && (
+          <Suspense fallback={<p className="muted">차트 로딩…</p>}>
+            <Dashboard />
+          </Suspense>
+        )}
         {tab === 'assets' && <p className="muted">자산·목표 — 준비 중 (T9)</p>}
         {tab === 'import' && <p className="muted">가져오기 — 준비 중 (T10)</p>}
       </main>
