@@ -1,32 +1,33 @@
-# React + TypeScript + Vite
+# kakebu (家計簿)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+공동 가계부 웹앱. 프론트엔드 단독(서버 없음)이며 데이터는 구글 시트에 저장한다.
 
-Currently, two official plugins are available:
+**라이브: https://future-sora.github.io**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 기능
+- 월별 수입·지출 입력 + 사람별/합계 자동 집계(소비총액·저축가능액·최종저축)
+- 대시보드: 월별 저축 추이·저축률·항목별 지출 차트
+- 자산 현황 + 다중 목표 진행률
+- 정규화 CSV 가져오기
 
-## React Compiler
+## 스택
+React + Vite + TypeScript · 차트 recharts · 저장소 Google Sheets API (GIS OAuth, token model)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## 개발
+```
+npm install
+npm run dev      # 로컬 개발 서버 (localhost:5173)
+npm test         # 단위 테스트 (vitest)
+npm run build    # 타입체크 + 프로덕션 빌드
+npm run lint     # oxlint
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## 배포
+`main` 푸시 시 GitHub Actions가 GitHub Pages로 자동 배포한다 (`.github/workflows/deploy.yml`).
+
+## 인증·데이터
+- 구글 OAuth(GIS)로 로그인한 계정 권한으로 비공개 시트를 읽고 쓴다.
+- 앱은 시트에 `ledger` / `assets` / `goals` 탭이 없으면 자동 생성한다.
+- 스키마 설계는 `.claude/docs/data-schema.md` 참조.
+- 민감 데이터는 시트에만 있으며 코드·레포에는 포함하지 않는다.
+```
