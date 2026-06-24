@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { DataProvider, useData } from './data/DataContext'
 import { MonthlyView } from './components/MonthlyView'
+import { AssetsGoals } from './components/AssetsGoals'
 import { errMsg } from './lib/util'
 import './App.css'
 
@@ -94,7 +95,7 @@ function Shell() {
             <Dashboard />
           </Suspense>
         )}
-        {tab === 'assets' && <p className="muted">자산·목표 — 준비 중 (T9)</p>}
+        {tab === 'assets' && <AssetsGoals />}
         {tab === 'import' && <p className="muted">가져오기 — 준비 중 (T10)</p>}
       </main>
     </div>
