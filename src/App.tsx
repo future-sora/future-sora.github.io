@@ -1,121 +1,63 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useEffect, useState } from 'react'
+import { useAuth } from './auth/AuthContext'
+import { pingSpreadsheet } from './lib/sheets'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const { ready, token, email, person, signIn, signOut } = useAuth()
+  const [error, setError] = useState<string | null>(null)
+  const [sheet, setSheet] = useState<string | null>(null)
+
+  async function handleLogin() {
+    setError(null)
+    try {
+      await signIn()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  useEffect(() => {
+    if (!token) {
+      setSheet(null)
+      return
+    }
+    pingSpreadsheet().then((r) => {
+      if (r.ok) setSheet(r.title ?? '(제목 없음)')
+      else setError(`시트 접근 실패: ${r.error}`)
+    })
+  }, [token])
+
+  if (!token) {
+    return (
+      <main className="auth">
+        <h1>kakebu 가계부</h1>
+        <p>구글 계정으로 로그인하세요.</p>
+        <button type="button" onClick={handleLogin} disabled={!ready}>
+          {ready ? 'Google 로그인' : '로딩 중…'}
+        </button>
+        {error && <p className="error">{error}</p>}
+      </main>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <main className="app">
+      <header>
+        <h1>kakebu</h1>
+        <div className="userbar">
+          <span>
+            {email} {person ? `(${person})` : '(사람 미지정)'}
+          </span>
+          <button type="button" onClick={signOut}>
+            로그아웃
+          </button>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      </header>
+      <p>시트 연결: {sheet ? `✓ ${sheet}` : '확인 중…'}</p>
+      {error && <p className="error">{error}</p>}
+      {/* 다음 단계(T4~): 월별 입력·집계·대시보드·자산/목표 */}
+    </main>
   )
 }
 
