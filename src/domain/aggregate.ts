@@ -92,3 +92,36 @@ export function totalAssets(assets: AssetEntry[]): number {
 export function goalProgress(goal: Goal, currentTotal: number): number {
   return goal.targetAmount === 0 ? 0 : currentTotal / goal.targetAmount
 }
+
+/** targetMonth 직전에 데이터가 있는 가장 가까운 월. 없으면 null. */
+export function previousMonthWithData(
+  entries: LedgerEntry[],
+  targetMonth: string,
+): string | null {
+  const months = [...new Set(entries.map((e) => e.month))]
+    .filter((m) => m < targetMonth)
+    .sort()
+  return months.length > 0 ? months[months.length - 1] : null
+}
+
+/**
+ * sourceMonth의 항목을 targetMonth로 복제(새 id 부여). 사람·구분·항목·금액 유지.
+ * 매달 같은 정기 항목을 수동 재입력하지 않도록 "새 달 만들기"에 쓴다.
+ */
+export function carryForward(
+  entries: LedgerEntry[],
+  sourceMonth: string,
+  targetMonth: string,
+  idFn: () => string,
+): LedgerEntry[] {
+  return entries
+    .filter((e) => e.month === sourceMonth)
+    .map((e) => ({
+      id: idFn(),
+      month: targetMonth,
+      person: e.person,
+      type: e.type,
+      item: e.item,
+      amount: e.amount,
+    }))
+}

@@ -1,9 +1,14 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useData } from '../data/DataContext'
 import { useAuth } from '../auth/AuthContext'
 import { PERSONS, type Person } from '../config'
 import type { EntryType, LedgerEntry } from '../domain/types'
-import { summarizeMonth } from '../domain/aggregate'
+import {
+  summarizeMonth,
+  listMonths,
+  previousMonthWithData,
+  carryForward,
+} from '../domain/aggregate'
 import { itemSuggestions } from '../domain/categories'
 import { newId, currentMonth, fmtMoney } from '../lib/util'
 
@@ -16,7 +21,7 @@ interface FormState {
 }
 
 export function MonthlyView() {
-  const { ledger, ledgerOps } = useData()
+  const { ledger, ledgerOps, bulkAddLedger } = useData()
   const { person: myPerson } = useAuth()
   const [month, setMonth] = useState(currentMonth())
   const [form, setForm] = useState<FormState>({
@@ -28,6 +33,8 @@ export function MonthlyView() {
   })
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [copySource, setCopySource] = useState('')
+  const [copyBusy, setCopyBusy] = useState(false)
 
   const rows = useMemo(
     () => ledger.filter((e) => e.month === month),
@@ -38,6 +45,41 @@ export function MonthlyView() {
     () => itemSuggestions(form.type, ledger),
     [form.type, ledger],
   )
+
+  // 복제 원본 후보: 데이터 있는 다른 달(내림차순). 기본값은 직전 달.
+  const sourceMonths = useMemo(
+    () => listMonths(ledger).filter((m) => m !== month),
+    [ledger, month],
+  )
+  const defaultSource = useMemo(
+    () => previousMonthWithData(ledger, month) ?? sourceMonths[0] ?? '',
+    [ledger, month, sourceMonths],
+  )
+  const effectiveSource = copySource || defaultSource
+  const copyCount = useMemo(
+    () => ledger.filter((e) => e.month === effectiveSource).length,
+    [ledger, effectiveSource],
+  )
+
+  // 달을 바꾸면 원본 선택을 기본값으로 되돌린다.
+  useEffect(() => {
+    setCopySource('')
+  }, [month])
+
+  async function createFromMonth() {
+    if (!effectiveSource) return
+    const entries = carryForward(ledger, effectiveSource, month, newId)
+    if (entries.length === 0) return
+    setCopyBusy(true)
+    try {
+      await bulkAddLedger(entries)
+      setCopySource('')
+    } catch {
+      /* 에러는 상단 배너로 표시됨 */
+    } finally {
+      setCopyBusy(false)
+    }
+  }
 
   function resetForm() {
     setForm((f) => ({ ...f, editId: null, item: '', amount: '' }))
@@ -107,6 +149,30 @@ export function MonthlyView() {
           onChange={(e) => setMonth(e.target.value)}
         />
       </label>
+
+      {rows.length === 0 && effectiveSource && (
+        <div className="new-month">
+          <span>
+            {month}은 아직 비어 있어요. 지난 달 정기 항목을 복제해 시작하세요.
+          </span>
+          <span className="new-month-actions">
+            <select
+              value={effectiveSource}
+              onChange={(e) => setCopySource(e.target.value)}
+              disabled={copyBusy}
+            >
+              {sourceMonths.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={createFromMonth} disabled={copyBusy}>
+              {copyBusy ? '복제 중…' : `${effectiveSource} 항목 ${copyCount}개 복제`}
+            </button>
+          </span>
+        </div>
+      )}
 
       <form onSubmit={submit} className="entry-form">
         <select

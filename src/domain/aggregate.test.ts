@@ -7,6 +7,8 @@ import {
   expenseByItem,
   totalAssets,
   goalProgress,
+  previousMonthWithData,
+  carryForward,
 } from './aggregate'
 import type { LedgerEntry, AssetEntry, Goal } from './types'
 import type { Person } from '../config'
@@ -121,5 +123,43 @@ describe('totalAssets / goalProgress', () => {
   it('목표액 0이면 0', () => {
     const goal: Goal = { id: 'g0', name: 'x', targetAmount: 0, targetDate: '2030-10' }
     expect(goalProgress(goal, 100)).toBe(0)
+  })
+})
+
+describe('previousMonthWithData', () => {
+  const entries = [
+    e('소라삐', '소득', '월급', 100, '2026-04'),
+    e('소라삐', '소득', '월급', 200, '2026-06'),
+  ]
+
+  it('target 직전에 데이터 있는 가장 가까운 월', () => {
+    expect(previousMonthWithData(entries, '2026-07')).toBe('2026-06')
+    expect(previousMonthWithData(entries, '2026-06')).toBe('2026-04')
+  })
+
+  it('직전 데이터 없으면 null (target 이전이 비었을 때)', () => {
+    expect(previousMonthWithData(entries, '2026-04')).toBeNull()
+    expect(previousMonthWithData([], '2026-06')).toBeNull()
+  })
+})
+
+describe('carryForward', () => {
+  it('source 달 항목을 target 달로 복제하고 새 id를 부여한다', () => {
+    let n = 0
+    const idFn = () => `new${n++}`
+    const entries = [
+      e('소라삐', '소득', '월급', 490, '2026-05'),
+      e('소라삐', '소비', '핸드폰요금', 5, '2026-05'),
+      e('민달팽이', '소비', '용돈', 70, '2026-06'), // 다른 달 → 제외
+    ]
+    const out = carryForward(entries, '2026-05', '2026-06', idFn)
+    expect(out).toEqual([
+      { id: 'new0', month: '2026-06', person: '소라삐', type: '소득', item: '월급', amount: 490 },
+      { id: 'new1', month: '2026-06', person: '소라삐', type: '소비', item: '핸드폰요금', amount: 5 },
+    ])
+  })
+
+  it('source 달이 비면 빈 배열', () => {
+    expect(carryForward([], '2026-05', '2026-06', () => 'x')).toEqual([])
   })
 })

@@ -13,6 +13,7 @@ import {
   loadAssets,
   loadGoals,
   addLedger,
+  importLedger,
   updateLedger,
   deleteLedger,
   addAsset,
@@ -40,6 +41,8 @@ interface DataValue {
   reload: () => Promise<void>
   clearError: () => void
   ledgerOps: Ops<LedgerEntry>
+  /** 여러 ledger 항목을 한 번에 추가(한 번만 재로드). 예: 새 달 정기항목 복제. */
+  bulkAddLedger: (entries: LedgerEntry[]) => Promise<void>
   assetOps: Ops<AssetEntry>
   goalOps: Ops<Goal>
 }
@@ -128,6 +131,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     reload,
     clearError: () => setError(null),
     ledgerOps: makeOps(addLedger, updateLedger, deleteLedger),
+    bulkAddLedger: async (entries) => {
+      setError(null)
+      try {
+        await importLedger(entries)
+        await reload()
+      } catch (e) {
+        setError(errMsg(e))
+        throw e
+      }
+    },
     assetOps: makeOps(addAsset, updateAsset, deleteAsset),
     goalOps: makeOps(addGoal, updateGoal, deleteGoal),
   }
