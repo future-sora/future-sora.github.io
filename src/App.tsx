@@ -1,32 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAuth } from './auth/AuthContext'
-import { pingSpreadsheet } from './lib/sheets'
+import { DataProvider, useData } from './data/DataContext'
+import { MonthlyView } from './components/MonthlyView'
+import { errMsg } from './lib/util'
 import './App.css'
 
+type Tab = 'monthly' | 'dashboard' | 'assets' | 'import'
+
 function App() {
-  const { ready, token, email, person, signIn, signOut } = useAuth()
+  const { token, ready, signIn } = useAuth()
   const [error, setError] = useState<string | null>(null)
-  const [sheet, setSheet] = useState<string | null>(null)
 
   async function handleLogin() {
     setError(null)
     try {
       await signIn()
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errMsg(e))
     }
   }
-
-  useEffect(() => {
-    if (!token) {
-      setSheet(null)
-      return
-    }
-    pingSpreadsheet().then((r) => {
-      if (r.ok) setSheet(r.title ?? '(제목 없음)')
-      else setError(`시트 접근 실패: ${r.error}`)
-    })
-  }, [token])
 
   if (!token) {
     return (
@@ -42,8 +34,27 @@ function App() {
   }
 
   return (
-    <main className="app">
-      <header>
+    <DataProvider>
+      <Shell />
+    </DataProvider>
+  )
+}
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'monthly', label: '월별 입력' },
+  { key: 'dashboard', label: '대시보드' },
+  { key: 'assets', label: '자산·목표' },
+  { key: 'import', label: '가져오기' },
+]
+
+function Shell() {
+  const { email, person, signOut } = useAuth()
+  const { loading, error } = useData()
+  const [tab, setTab] = useState<Tab>('monthly')
+
+  return (
+    <div className="app">
+      <header className="app-header">
         <h1>kakebu</h1>
         <div className="userbar">
           <span>
@@ -54,10 +65,30 @@ function App() {
           </button>
         </div>
       </header>
-      <p>시트 연결: {sheet ? `✓ ${sheet}` : '확인 중…'}</p>
-      {error && <p className="error">{error}</p>}
-      {/* 다음 단계(T4~): 월별 입력·집계·대시보드·자산/목표 */}
-    </main>
+
+      <nav className="tabs">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            className={tab === t.key ? 'active' : ''}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {loading && <p className="muted">불러오는 중…</p>}
+      {error && <p className="error">오류: {error}</p>}
+
+      <main className="content">
+        {tab === 'monthly' && <MonthlyView />}
+        {tab === 'dashboard' && <p className="muted">대시보드 — 준비 중 (T8)</p>}
+        {tab === 'assets' && <p className="muted">자산·목표 — 준비 중 (T9)</p>}
+        {tab === 'import' && <p className="muted">가져오기 — 준비 중 (T10)</p>}
+      </main>
+    </div>
   )
 }
 
