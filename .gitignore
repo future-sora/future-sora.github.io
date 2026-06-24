@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code (로컬 에이전트 설정/세션)
+.claude/
+
+# 환경변수 (로컬 비밀)
+.env
+.env.*
+!.env.example
