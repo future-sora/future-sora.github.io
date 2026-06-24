@@ -4,6 +4,7 @@ import { DataProvider, useData } from './data/DataContext'
 import { MonthlyView } from './components/MonthlyView'
 import { AssetsGoals } from './components/AssetsGoals'
 import { ImportCsv } from './components/ImportCsv'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { errMsg } from './lib/util'
 import './App.css'
 
@@ -55,9 +56,18 @@ const TABS: { key: Tab; label: string }[] = [
 ]
 
 function Shell() {
-  const { email, person, signOut } = useAuth()
-  const { loading, error } = useData()
+  const { email, person, signOut, signIn } = useAuth()
+  const { loading, error, reload, clearError } = useData()
   const [tab, setTab] = useState<Tab>('monthly')
+
+  async function retryLogin() {
+    clearError()
+    try {
+      await signIn()
+    } catch {
+      /* 사용자가 로그인 취소 */
+    }
+  }
 
   return (
     <div className="app">
@@ -87,17 +97,37 @@ function Shell() {
       </nav>
 
       {loading && <p className="muted">불러오는 중…</p>}
-      {error && <p className="error">오류: {error}</p>}
+      {error && (
+        <div className="error-banner">
+          <span className="error">오류: {error}</span>
+          <span className="banner-actions">
+            <button
+              type="button"
+              onClick={() => {
+                clearError()
+                void reload()
+              }}
+            >
+              새로고침
+            </button>
+            <button type="button" onClick={retryLogin}>
+              다시 로그인
+            </button>
+          </span>
+        </div>
+      )}
 
       <main className="content">
-        {tab === 'monthly' && <MonthlyView />}
-        {tab === 'dashboard' && (
-          <Suspense fallback={<p className="muted">차트 로딩…</p>}>
-            <Dashboard />
-          </Suspense>
-        )}
-        {tab === 'assets' && <AssetsGoals />}
-        {tab === 'import' && <ImportCsv />}
+        <ErrorBoundary>
+          {tab === 'monthly' && <MonthlyView />}
+          {tab === 'dashboard' && (
+            <Suspense fallback={<p className="muted">차트 로딩…</p>}>
+              <Dashboard />
+            </Suspense>
+          )}
+          {tab === 'assets' && <AssetsGoals />}
+          {tab === 'import' && <ImportCsv />}
+        </ErrorBoundary>
       </main>
     </div>
   )

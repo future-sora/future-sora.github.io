@@ -149,6 +149,36 @@ th {
   color: var(--text-h);
 }
 
+.error-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  border: 1px solid var(--error);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+}
+.banner-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.banner-actions button {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+textarea {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
 @media (max-width: 600px) {
   .entry-form {
     flex-direction: column;
