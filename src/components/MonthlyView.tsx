@@ -174,6 +174,12 @@ export function MonthlyView() {
     setEntering(true)
   }
 
+  // 취소: 변경 버리고 조회 모드로(표는 useEffect가 저장본으로 재구성).
+  function cancel() {
+    setEditing(false)
+    setEntering(false)
+  }
+
   function setAmount(type: EntryType, rowId: string, person: Person, value: string) {
     setGrid((g) => ({
       ...g,
@@ -283,14 +289,24 @@ export function MonthlyView() {
         />
         <span className="monthly-actions">
           {inputs ? (
-            <button
-              type="button"
-              onClick={save}
-              disabled={!dirty || busy}
-              className="save-btn"
-            >
-              {busy ? '저장 중…' : '저장'}
-            </button>
+            <>
+              <button
+                type="button"
+                className="next-month"
+                onClick={cancel}
+                disabled={busy}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={!dirty || busy}
+                className="save-btn"
+              >
+                {busy ? '저장 중…' : '저장'}
+              </button>
+            </>
           ) : (
             <>
               {hasData && (
