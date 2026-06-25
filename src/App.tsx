@@ -3,7 +3,6 @@ import { useAuth } from './auth/AuthContext'
 import { DataProvider, useData } from './data/DataContext'
 import { MonthlyView } from './components/MonthlyView'
 import { AssetsGoals } from './components/AssetsGoals'
-import { ImportCsv } from './components/ImportCsv'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { errMsg } from './lib/util'
 import './App.css'
@@ -13,7 +12,7 @@ const Dashboard = lazy(() =>
   import('./components/Dashboard').then((m) => ({ default: m.Dashboard })),
 )
 
-type Tab = 'monthly' | 'dashboard' | 'assets' | 'import'
+type Tab = 'monthly' | 'dashboard' | 'assets'
 
 function App() {
   const { token, ready, bootstrapping, signIn } = useAuth()
@@ -58,7 +57,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'monthly', label: '월별 입력' },
   { key: 'dashboard', label: '대시보드' },
   { key: 'assets', label: '자산·목표' },
-  { key: 'import', label: '가져오기' },
 ]
 
 function Shell() {
@@ -132,7 +130,6 @@ function Shell() {
             </Suspense>
           )}
           {tab === 'assets' && <AssetsGoals />}
-          {tab === 'import' && <ImportCsv />}
         </ErrorBoundary>
       </main>
     </div>
