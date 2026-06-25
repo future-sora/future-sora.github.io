@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../data/DataContext'
 import { PERSONS, type Person } from '../config'
 import type { EntryType, LedgerEntry } from '../domain/types'
-import { summarizeMonth, previousMonthWithData } from '../domain/aggregate'
+import { summarizeMonth, previousMonthWithData, listMonths } from '../domain/aggregate'
 import { ITEM_PRESETS } from '../domain/categories'
 import { newId, currentMonth, fmtMoney } from '../lib/util'
 
@@ -11,7 +11,7 @@ const TYPES: EntryType[] = ['소득', '소비']
 interface EditRow {
   id: string // React key (세션 내 안정). 프리셋/기존 항목은 `type:item`, 추가 행은 uuid.
   item: string // 항목명(추가 행만 편집 가능)
-  fixed: boolean // 프리셋 행이면 이름 고정
+  fixed: boolean // 기존/프리셋 항목이면 이름 고정(라벨)
   amounts: Record<Person, string> // 사람별 입력 문자열(만원)
 }
 
@@ -77,18 +77,16 @@ function buildRows(
   return rows
 }
 
-/** 입력 가능한 달이 비었으면 직전(최근) 달을 미리채움 원본으로 — 소득·소비 모두. */
+/** prefill=true(급여 입력 모드의 빈 달)이면 소비를 최신 달 기준으로 미리 채운다. */
 function buildGrid(
   ledger: LedgerEntry[],
   month: string,
+  prefill: boolean,
 ): { grid: Grid; prefilled: boolean } {
-  const editable = month >= currentMonth()
-  const isEmpty = !ledger.some((e) => e.month === month)
-  const prefillMonth = editable && isEmpty ? previousMonthWithData(ledger, month) : null
+  const prefillMonth = prefill ? previousMonthWithData(ledger, month) : null
   return {
     grid: {
-      // 월급은 금액은 안 채우되(직접 입력), 입력 가능한 달엔 행을 항상 보이게.
-      소득: buildRows('소득', ledger, month, null, editable ? ['월급'] : []),
+      소득: buildRows('소득', ledger, month, null, ['월급']), // 월급 행은 항상 표시
       소비: buildRows('소비', ledger, month, prefillMonth),
     },
     prefilled: prefillMonth != null,
@@ -114,21 +112,25 @@ function shiftMonth(month: string, delta: number): string {
 export function MonthlyView() {
   const { ledger, applyLedgerChanges } = useData()
   const [month, setMonth] = useState(currentMonth())
-  const [grid, setGrid] = useState<Grid>(() => buildGrid(ledger, month).grid)
+  const [grid, setGrid] = useState<Grid>(() => buildGrid(ledger, month, false).grid)
   const [dirty, setDirty] = useState(false)
+  const [entering, setEntering] = useState(false) // 급여 입력(신규 달) 모드
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  // 지난 달은 조회 전용, 이번달(및 이후)만 입력 가능.
-  const editable = month >= currentMonth()
+  const latestMonth = useMemo(() => listMonths(ledger)[0] ?? null, [ledger])
+  const hasData = useMemo(() => ledger.some((e) => e.month === month), [ledger, month])
+  // 데이터가 있으면 조회/편집, 없어도 급여 입력 모드면 입력 표를 보여준다.
+  const showInputs = hasData || entering
 
-  // 시트 데이터(ledger) 또는 달이 바뀌면 표를 다시 구성(저장 후 재로드 포함).
+  // ledger·달·입력모드 변화 시 표 재구성(저장 후 재로드 포함).
   useEffect(() => {
-    const { grid: g, prefilled } = buildGrid(ledger, month)
+    const prefill = entering && !ledger.some((e) => e.month === month)
+    const { grid: g, prefilled } = buildGrid(ledger, month, prefill)
     setGrid(g)
     setDirty(prefilled) // 미리채운 초안은 바로 저장할 수 있게 dirty
     setFormError(null)
-  }, [ledger, month])
+  }, [ledger, month, entering])
 
   const summary = useMemo(() => summarizeMonth(ledger, month), [ledger, month])
 
@@ -145,6 +147,12 @@ export function MonthlyView() {
   function unusedFor(type: EntryType): string[] {
     const inGrid = new Set(grid[type].map((r) => r.item.trim()).filter(Boolean))
     return knownItems[type].filter((i) => !inGrid.has(i))
+  }
+
+  // 급여 입력: 최신 달 다음 달을 신규 입력(소비는 최신 달 기준 프리필).
+  function startEntry() {
+    setMonth(latestMonth ? shiftMonth(latestMonth, 1) : currentMonth())
+    setEntering(true)
   }
 
   function setAmount(type: EntryType, rowId: string, person: Person, value: string) {
@@ -226,6 +234,7 @@ export function MonthlyView() {
     if (creates.length === 0 && updates.length === 0 && deletes.length === 0) {
       setDirty(false)
       setFormError(null)
+      setEntering(false)
       return
     }
 
@@ -233,6 +242,7 @@ export function MonthlyView() {
     setFormError(null)
     try {
       await applyLedgerChanges({ creates, updates, deletes })
+      setEntering(false) // 저장하면 조회 모드로
     } catch {
       setFormError('저장에 실패했습니다. 다시 시도하세요.')
     } finally {
@@ -251,7 +261,7 @@ export function MonthlyView() {
           onChange={(e) => setMonth(e.target.value)}
         />
         <span className="monthly-actions">
-          {editable ? (
+          {showInputs && (
             <button
               type="button"
               onClick={save}
@@ -260,148 +270,146 @@ export function MonthlyView() {
             >
               {busy ? '저장 중…' : '저장'}
             </button>
-          ) : (
-            <span className="muted readonly-tag">지난 달 · 조회 전용</span>
           )}
           <button
             type="button"
             className="next-month"
-            onClick={() => setMonth(shiftMonth(month, 1))}
-            title="다음 달로 이동해 입력"
+            onClick={startEntry}
+            title="최신 달 기준으로 새 달을 입력"
           >
-            다음 달 +
+            급여 입력
           </button>
         </span>
       </div>
 
       {formError && <p className="error">{formError}</p>}
 
-      {TYPES.map((type) => (
-        <div key={type} className="grid-block">
-          <h3>{type}</h3>
-          <table className="grid">
-            <thead>
-              <tr>
-                <th>항목</th>
-                {PERSONS.map((p) => (
-                  <th key={p} className="num">
-                    {p}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {grid[type].length === 0 && (
+      {!showInputs ? (
+        <p className="muted empty-month">저장된 데이터가 없습니다.</p>
+      ) : (
+        <>
+          {TYPES.map((type) => (
+            <div key={type} className="grid-block">
+              <h3>{type}</h3>
+              <table className="grid">
+                <thead>
+                  <tr>
+                    <th>항목</th>
+                    {PERSONS.map((p) => (
+                      <th key={p} className="num">
+                        {p}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {grid[type].length === 0 && (
+                    <tr>
+                      <td colSpan={PERSONS.length + 1} className="muted">
+                        아래 + 로 항목을 추가하세요.
+                      </td>
+                    </tr>
+                  )}
+                  {grid[type].map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        {row.fixed ? (
+                          row.item
+                        ) : (
+                          <input
+                            className="item-input"
+                            list={`cat-${type}`}
+                            placeholder="항목 선택/입력"
+                            value={row.item}
+                            onChange={(e) => setName(type, row.id, e.target.value)}
+                          />
+                        )}
+                      </td>
+                      {PERSONS.map((p) => (
+                        <td key={p} className="num">
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            inputMode="decimal"
+                            className="amount-input"
+                            value={row.amounts[p]}
+                            onChange={(e) => setAmount(type, row.id, p, e.target.value)}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={PERSONS.length + 1}>
+                      <button
+                        type="button"
+                        className="add-row"
+                        onClick={() => addRow(type)}
+                      >
+                        + 항목 추가
+                      </button>
+                      <datalist id={`cat-${type}`}>
+                        {unusedFor(type).map((i) => (
+                          <option key={i} value={i} />
+                        ))}
+                      </datalist>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ))}
+
+          <div className="summary">
+            <h3>{month} 집계 (만원)</h3>
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={PERSONS.length + 1} className="muted">
-                    {editable ? '아래 + 로 항목을 추가하세요.' : '이 달은 데이터가 없습니다.'}
-                  </td>
+                  <th></th>
+                  {PERSONS.map((p) => (
+                    <th key={p} className="num">
+                      {p}
+                    </th>
+                  ))}
+                  <th className="num">합계</th>
                 </tr>
-              )}
-              {grid[type].map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    {row.fixed || !editable ? (
-                      row.item
-                    ) : (
-                      <input
-                        className="item-input"
-                        list={`cat-${type}`}
-                        placeholder="항목 선택/입력"
-                        value={row.item}
-                        onChange={(e) => setName(type, row.id, e.target.value)}
-                      />
-                    )}
-                  </td>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>소득</td>
                   {PERSONS.map((p) => (
                     <td key={p} className="num">
-                      {editable ? (
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          inputMode="decimal"
-                          className="amount-input"
-                          value={row.amounts[p]}
-                          onChange={(e) => setAmount(type, row.id, p, e.target.value)}
-                        />
-                      ) : (
-                        row.amounts[p]
-                      )}
+                      {fmtMoney(summary.byPerson[p].income)}
                     </td>
                   ))}
+                  <td className="num">{fmtMoney(summary.total.income)}</td>
                 </tr>
-              ))}
-            </tbody>
-            {editable && (
-              <tfoot>
                 <tr>
-                  <td colSpan={PERSONS.length + 1}>
-                    <button
-                      type="button"
-                      className="add-row"
-                      onClick={() => addRow(type)}
-                    >
-                      + 항목 추가
-                    </button>
-                    <datalist id={`cat-${type}`}>
-                      {unusedFor(type).map((i) => (
-                        <option key={i} value={i} />
-                      ))}
-                    </datalist>
-                  </td>
+                  <td>소비</td>
+                  {PERSONS.map((p) => (
+                    <td key={p} className="num">
+                      {fmtMoney(summary.byPerson[p].expense)}
+                    </td>
+                  ))}
+                  <td className="num">{fmtMoney(summary.total.expense)}</td>
                 </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
-      ))}
-
-      <div className="summary">
-        <h3>{month} 집계 (만원)</h3>
-        <table>
-          <thead>
-            <tr>
-              <th></th>
-              {PERSONS.map((p) => (
-                <th key={p} className="num">
-                  {p}
-                </th>
-              ))}
-              <th className="num">합계</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>소득</td>
-              {PERSONS.map((p) => (
-                <td key={p} className="num">
-                  {fmtMoney(summary.byPerson[p].income)}
-                </td>
-              ))}
-              <td className="num">{fmtMoney(summary.total.income)}</td>
-            </tr>
-            <tr>
-              <td>소비</td>
-              {PERSONS.map((p) => (
-                <td key={p} className="num">
-                  {fmtMoney(summary.byPerson[p].expense)}
-                </td>
-              ))}
-              <td className="num">{fmtMoney(summary.total.expense)}</td>
-            </tr>
-            <tr className="total">
-              <td>저축가능</td>
-              {PERSONS.map((p) => (
-                <td key={p} className="num">
-                  {fmtMoney(summary.byPerson[p].savable)}
-                </td>
-              ))}
-              <td className="num">{fmtMoney(summary.total.savable)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                <tr className="total">
+                  <td>저축가능</td>
+                  {PERSONS.map((p) => (
+                    <td key={p} className="num">
+                      {fmtMoney(summary.byPerson[p].savable)}
+                    </td>
+                  ))}
+                  <td className="num">{fmtMoney(summary.total.savable)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </section>
   )
 }

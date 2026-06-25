@@ -181,6 +181,9 @@ th {
   background: var(--bg);
   color: var(--text-h);
 }
+.empty-month {
+  padding: 1.5rem 0;
+}
 .save-btn:disabled {
   opacity: 0.5;
 }
