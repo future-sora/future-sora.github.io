@@ -23,7 +23,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm ci는 lock의 플랫폼별 optional dep(@emnapi 등)에서 CI npm 버전과
+      # 어긋나 깨지므로, 드리프트에 견디는 npm install 사용.
+      - run: npm install --no-audit --no-fund
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
