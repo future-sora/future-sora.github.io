@@ -56,16 +56,21 @@ export function listMonths(entries: LedgerEntry[]): string[] {
   return [...new Set(entries.map((e) => e.month))].sort().reverse()
 }
 
-/** 월별 최종저축(저축가능액 합) 추이 — 오름차순 월 순서. */
+/** 월별 추이 — 최종저축·소득(만원)과 저축률(0~1). 오름차순 월 순서. */
 export function savingsTrend(
   entries: LedgerEntry[],
-): { month: string; savable: number }[] {
+): { month: string; savable: number; income: number; rate: number }[] {
   return [...new Set(entries.map((e) => e.month))]
     .sort()
-    .map((month) => ({
-      month,
-      savable: summarizeMonth(entries, month).total.savable,
-    }))
+    .map((month) => {
+      const summary = summarizeMonth(entries, month)
+      return {
+        month,
+        savable: summary.total.savable,
+        income: summary.total.income,
+        rate: savingsRate(summary),
+      }
+    })
 }
 
 /** 카테고리(항목)별 지출 합계 — 내림차순. */

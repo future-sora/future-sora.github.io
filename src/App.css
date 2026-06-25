@@ -296,6 +296,32 @@ th {
   color: var(--muted);
 }
 
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.metric-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.metric-toggle button {
+  background: none;
+  border: none;
+  padding: 0.35rem 0.85rem;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+.metric-toggle button.active {
+  background: #243b53;
+  color: #fff;
+  font-weight: 600;
+}
+
 .dash-controls {
   display: flex;
   gap: 1rem;
