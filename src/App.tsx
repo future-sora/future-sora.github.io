@@ -30,17 +30,26 @@ function App() {
   if (!token) {
     return (
       <main className="auth">
-        <h1>kakebu 가계부</h1>
+        <div className="auth-brand">
+          <img className="auth-photo" src="/img/char-login.png" alt="우리 커플 캐릭터" />
+          <h1>가계부</h1>
+          <p className="auth-tagline">우리들의 귀여운 자산관리 ✈️</p>
+        </div>
         {bootstrapping ? (
-          <p>로그인 확인 중…</p>
+          <p className="muted">로그인 확인 중…</p>
         ) : (
-          <>
-            <p>구글 계정으로 로그인하세요.</p>
-            <button type="button" onClick={handleLogin} disabled={!ready}>
+          <div className="auth-card">
+            <p>구글 계정으로 로그인하세요</p>
+            <button
+              type="button"
+              className="login-btn"
+              onClick={handleLogin}
+              disabled={!ready}
+            >
               {ready ? 'Google 로그인' : '로딩 중…'}
             </button>
             {error && <p className="error">{error}</p>}
-          </>
+          </div>
         )}
       </main>
     )
@@ -76,7 +85,10 @@ function Shell() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>kakebu</h1>
+        <div className="brand">
+          <img className="brand-photo" src="/img/char-head.png" alt="" />
+          <h1>가계부</h1>
+        </div>
         <div className="userbar">
           <span>
             {email} {person ? `(${person})` : '(사람 미지정)'}
