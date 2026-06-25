@@ -161,6 +161,11 @@ th {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
+.monthly-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
 .save-btn {
   padding: 0.45rem 1.1rem;
   border: 1px solid var(--border);
@@ -168,6 +173,13 @@ th {
   background: var(--accent-bg);
   color: var(--text-h);
   font-weight: 600;
+}
+.next-month {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
 }
 .save-btn:disabled {
   opacity: 0.5;

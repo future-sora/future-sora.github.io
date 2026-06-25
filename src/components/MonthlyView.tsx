@@ -104,6 +104,13 @@ function emptyRow(): EditRow {
   }
 }
 
+/** "YYYY-MM"에 delta개월 더한 달. */
+function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
 export function MonthlyView() {
   const { ledger, applyLedgerChanges } = useData()
   const [month, setMonth] = useState(currentMonth())
@@ -243,18 +250,28 @@ export function MonthlyView() {
           value={month}
           onChange={(e) => setMonth(e.target.value)}
         />
-        {editable ? (
+        <span className="monthly-actions">
+          {editable ? (
+            <button
+              type="button"
+              onClick={save}
+              disabled={!dirty || busy}
+              className="save-btn"
+            >
+              {busy ? '저장 중…' : '저장'}
+            </button>
+          ) : (
+            <span className="muted readonly-tag">지난 달 · 조회 전용</span>
+          )}
           <button
             type="button"
-            onClick={save}
-            disabled={!dirty || busy}
-            className="save-btn"
+            className="next-month"
+            onClick={() => setMonth(shiftMonth(month, 1))}
+            title="다음 달로 이동해 입력"
           >
-            {busy ? '저장 중…' : '저장'}
+            다음 달 +
           </button>
-        ) : (
-          <span className="muted readonly-tag">지난 달 · 조회 전용</span>
-        )}
+        </span>
       </div>
 
       {formError && <p className="error">{formError}</p>}
