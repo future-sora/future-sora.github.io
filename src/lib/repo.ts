@@ -113,6 +113,10 @@ export async function deleteLedger(id: string): Promise<void> {
 export async function addAsset(a: AssetEntry): Promise<void> {
   await appendRow(TABS.assets.range, assetToRow(a))
 }
+export async function importAssets(entries: AssetEntry[]): Promise<void> {
+  if (entries.length === 0) return
+  await appendRows(TABS.assets.range, entries.map(assetToRow))
+}
 export async function updateAsset(a: AssetEntry): Promise<void> {
   const n = await findRowNumber(TABS.assets.range, a.id)
   if (n == null) throw new Error('수정 대상 행을 찾지 못했습니다.')

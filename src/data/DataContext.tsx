@@ -17,6 +17,7 @@ import {
   updateLedger,
   deleteLedger,
   addAsset,
+  importAssets,
   updateAsset,
   deleteAsset,
   addGoal,
@@ -50,6 +51,12 @@ interface DataValue {
     deletes: string[]
   }) => Promise<void>
   assetOps: Ops<AssetEntry>
+  /** 자산 표 편집 저장: 삭제·수정·추가를 한 번에 적용하고 한 번만 재로드. */
+  applyAssetChanges: (changes: {
+    creates: AssetEntry[]
+    updates: AssetEntry[]
+    deletes: string[]
+  }) => Promise<void>
   goalOps: Ops<Goal>
 }
 
@@ -161,6 +168,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     },
     assetOps: makeOps(addAsset, updateAsset, deleteAsset),
+    applyAssetChanges: async ({ creates, updates, deletes }) => {
+      setError(null)
+      try {
+        for (const id of deletes) await deleteAsset(id)
+        for (const a of updates) await updateAsset(a)
+        if (creates.length > 0) await importAssets(creates)
+        await reload()
+      } catch (e) {
+        setError(errMsg(e))
+        throw e
+      }
+    },
     goalOps: makeOps(addGoal, updateGoal, deleteGoal),
   }
 
