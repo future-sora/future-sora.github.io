@@ -243,6 +243,7 @@ export function AssetsGoals() {
           )}
         </span>
       </div>
+      <p className="muted assets-note">2025년 8월부터 다시 모으는 중</p>
       {aerr && <p className="error">{aerr}</p>}
       <table className="grid">
         <thead>
