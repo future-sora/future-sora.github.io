@@ -19,6 +19,7 @@ import {
   listMonths,
 } from '../domain/aggregate'
 import { currentMonth } from '../lib/util'
+import { MonthDropdown } from './MonthDropdown'
 
 export function Dashboard() {
   const { ledger } = useData()
@@ -63,14 +64,7 @@ export function Dashboard() {
       </ResponsiveContainer>
 
       <div className="dash-controls">
-        <label>
-          월{' '}
-          <select value={month} onChange={(e) => setMonth(e.target.value)}>
-            {months.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </label>
+        <MonthDropdown value={month} options={months} onChange={setMonth} />
         <span className="rate">
           저축률 <strong>{(rate * 100).toFixed(1)}%</strong>
           {' '}(소득 {summary.total.income} · 저축가능 {summary.total.savable})
