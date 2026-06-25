@@ -77,16 +77,17 @@ function buildRows(
   return rows
 }
 
-/** prefill=true(급여 입력 모드의 빈 달)이면 소비를 최신 달 기준으로 미리 채운다. */
+/** prefill: 소비를 최신 달 기준으로 미리 채움. salaryRow: 월급 행을 빈 채로도 표시. */
 function buildGrid(
   ledger: LedgerEntry[],
   month: string,
   prefill: boolean,
+  salaryRow: boolean,
 ): { grid: Grid; prefilled: boolean } {
   const prefillMonth = prefill ? previousMonthWithData(ledger, month) : null
   return {
     grid: {
-      소득: buildRows('소득', ledger, month, null, ['월급']), // 월급 행은 항상 표시
+      소득: buildRows('소득', ledger, month, null, salaryRow ? ['월급'] : []),
       소비: buildRows('소비', ledger, month, prefillMonth),
     },
     prefilled: prefillMonth != null,
@@ -112,25 +113,36 @@ function shiftMonth(month: string, delta: number): string {
 export function MonthlyView() {
   const { ledger, applyLedgerChanges } = useData()
   const [month, setMonth] = useState(currentMonth())
-  const [grid, setGrid] = useState<Grid>(() => buildGrid(ledger, month, false).grid)
+  const [grid, setGrid] = useState<Grid>(() => buildGrid(ledger, month, false, false).grid)
   const [dirty, setDirty] = useState(false)
   const [entering, setEntering] = useState(false) // 급여 입력(신규 달) 모드
+  const [editing, setEditing] = useState(false) // 기존 달 편집 모드
+  const [initialized, setInitialized] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const latestMonth = useMemo(() => listMonths(ledger)[0] ?? null, [ledger])
   const hasData = useMemo(() => ledger.some((e) => e.month === month), [ledger, month])
-  // 데이터가 있으면 조회/편집, 없어도 급여 입력 모드면 입력 표를 보여준다.
-  const showInputs = hasData || entering
+  const inputs = editing || entering // 셀 편집 가능 상태(편집/신규)
+  const showTables = hasData || entering // 표 표시(아니면 "데이터 없음" 메시지)
 
-  // ledger·달·입력모드 변화 시 표 재구성(저장 후 재로드 포함).
+  // 접속하면 최근 입력된 달을 기본으로 보여준다(1회).
   useEffect(() => {
+    if (!initialized && latestMonth) {
+      setMonth(latestMonth)
+      setInitialized(true)
+    }
+  }, [latestMonth, initialized])
+
+  // ledger·달·모드 변화 시 표 재구성(저장 후 재로드 포함).
+  useEffect(() => {
+    const inEdit = editing || entering
     const prefill = entering && !ledger.some((e) => e.month === month)
-    const { grid: g, prefilled } = buildGrid(ledger, month, prefill)
+    const { grid: g, prefilled } = buildGrid(ledger, month, prefill, inEdit)
     setGrid(g)
     setDirty(prefilled) // 미리채운 초안은 바로 저장할 수 있게 dirty
     setFormError(null)
-  }, [ledger, month, entering])
+  }, [ledger, month, entering, editing])
 
   const summary = useMemo(() => summarizeMonth(ledger, month), [ledger, month])
 
@@ -149,8 +161,15 @@ export function MonthlyView() {
     return knownItems[type].filter((i) => !inGrid.has(i))
   }
 
+  function selectMonth(m: string) {
+    setEditing(false)
+    setEntering(false)
+    setMonth(m)
+  }
+
   // 급여 입력: 최신 달 다음 달을 신규 입력(소비는 최신 달 기준 프리필).
   function startEntry() {
+    setEditing(false)
     setMonth(latestMonth ? shiftMonth(latestMonth, 1) : currentMonth())
     setEntering(true)
   }
@@ -234,6 +253,7 @@ export function MonthlyView() {
     if (creates.length === 0 && updates.length === 0 && deletes.length === 0) {
       setDirty(false)
       setFormError(null)
+      setEditing(false)
       setEntering(false)
       return
     }
@@ -242,7 +262,8 @@ export function MonthlyView() {
     setFormError(null)
     try {
       await applyLedgerChanges({ creates, updates, deletes })
-      setEntering(false) // 저장하면 조회 모드로
+      setEditing(false) // 저장하면 조회 모드로
+      setEntering(false)
     } catch {
       setFormError('저장에 실패했습니다. 다시 시도하세요.')
     } finally {
@@ -258,10 +279,10 @@ export function MonthlyView() {
           type="month"
           aria-label="월 선택"
           value={month}
-          onChange={(e) => setMonth(e.target.value)}
+          onChange={(e) => selectMonth(e.target.value)}
         />
         <span className="monthly-actions">
-          {showInputs && (
+          {inputs ? (
             <button
               type="button"
               onClick={save}
@@ -270,21 +291,33 @@ export function MonthlyView() {
             >
               {busy ? '저장 중…' : '저장'}
             </button>
+          ) : (
+            <>
+              {hasData && (
+                <button
+                  type="button"
+                  className="next-month"
+                  onClick={() => setEditing(true)}
+                >
+                  편집
+                </button>
+              )}
+              <button
+                type="button"
+                className="next-month"
+                onClick={startEntry}
+                title="최신 달 기준으로 새 달을 입력"
+              >
+                급여 입력
+              </button>
+            </>
           )}
-          <button
-            type="button"
-            className="next-month"
-            onClick={startEntry}
-            title="최신 달 기준으로 새 달을 입력"
-          >
-            급여 입력
-          </button>
         </span>
       </div>
 
       {formError && <p className="error">{formError}</p>}
 
-      {!showInputs ? (
+      {!showTables ? (
         <p className="muted empty-month">저장된 데이터가 없습니다.</p>
       ) : (
         <>
@@ -306,14 +339,14 @@ export function MonthlyView() {
                   {grid[type].length === 0 && (
                     <tr>
                       <td colSpan={PERSONS.length + 1} className="muted">
-                        아래 + 로 항목을 추가하세요.
+                        {inputs ? '아래 + 로 항목을 추가하세요.' : '항목 없음'}
                       </td>
                     </tr>
                   )}
                   {grid[type].map((row) => (
                     <tr key={row.id}>
                       <td>
-                        {row.fixed ? (
+                        {!inputs || row.fixed ? (
                           row.item
                         ) : (
                           <input
@@ -327,38 +360,44 @@ export function MonthlyView() {
                       </td>
                       {PERSONS.map((p) => (
                         <td key={p} className="num">
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            inputMode="decimal"
-                            className="amount-input"
-                            value={row.amounts[p]}
-                            onChange={(e) => setAmount(type, row.id, p, e.target.value)}
-                          />
+                          {inputs ? (
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              inputMode="decimal"
+                              className="amount-input"
+                              value={row.amounts[p]}
+                              onChange={(e) => setAmount(type, row.id, p, e.target.value)}
+                            />
+                          ) : (
+                            row.amounts[p]
+                          )}
                         </td>
                       ))}
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={PERSONS.length + 1}>
-                      <button
-                        type="button"
-                        className="add-row"
-                        onClick={() => addRow(type)}
-                      >
-                        + 항목 추가
-                      </button>
-                      <datalist id={`cat-${type}`}>
-                        {unusedFor(type).map((i) => (
-                          <option key={i} value={i} />
-                        ))}
-                      </datalist>
-                    </td>
-                  </tr>
-                </tfoot>
+                {inputs && (
+                  <tfoot>
+                    <tr>
+                      <td colSpan={PERSONS.length + 1}>
+                        <button
+                          type="button"
+                          className="add-row"
+                          onClick={() => addRow(type)}
+                        >
+                          + 항목 추가
+                        </button>
+                        <datalist id={`cat-${type}`}>
+                          {unusedFor(type).map((i) => (
+                            <option key={i} value={i} />
+                          ))}
+                        </datalist>
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           ))}
