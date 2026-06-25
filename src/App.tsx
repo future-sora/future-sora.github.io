@@ -16,7 +16,7 @@ const Dashboard = lazy(() =>
 type Tab = 'monthly' | 'dashboard' | 'assets' | 'import'
 
 function App() {
-  const { token, ready, signIn } = useAuth()
+  const { token, ready, bootstrapping, signIn } = useAuth()
   const [error, setError] = useState<string | null>(null)
 
   async function handleLogin() {
@@ -32,11 +32,17 @@ function App() {
     return (
       <main className="auth">
         <h1>kakebu 가계부</h1>
-        <p>구글 계정으로 로그인하세요.</p>
-        <button type="button" onClick={handleLogin} disabled={!ready}>
-          {ready ? 'Google 로그인' : '로딩 중…'}
-        </button>
-        {error && <p className="error">{error}</p>}
+        {bootstrapping ? (
+          <p>로그인 확인 중…</p>
+        ) : (
+          <>
+            <p>구글 계정으로 로그인하세요.</p>
+            <button type="button" onClick={handleLogin} disabled={!ready}>
+              {ready ? 'Google 로그인' : '로딩 중…'}
+            </button>
+            {error && <p className="error">{error}</p>}
+          </>
+        )}
       </main>
     )
   }
