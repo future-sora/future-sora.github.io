@@ -1,14 +1,83 @@
+/* ---------- 로그인 ---------- */
 .auth {
-  max-width: 360px;
-  margin: 15vh auto;
+  max-width: 400px;
+  margin: 11vh auto;
   text-align: center;
   padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+}
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+.auth-photo {
+  width: 210px;
+  max-width: 70vw;
+  height: auto;
+  border-radius: 22px;
+  box-shadow: var(--shadow-pop);
+  animation: float 3.6s ease-in-out infinite;
+}
+.auth-brand h1 {
+  font-size: 2.1rem;
+  margin: 0.4rem 0 0;
+}
+.auth-tagline {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.auth-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.login-btn {
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: var(--on-accent);
+  font-weight: 700;
+  font-family: var(--display);
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-pop);
+}
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* ---------- 셸 ---------- */
 .app {
   max-width: 900px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 1rem 1rem 3rem;
 }
 
 .app-header {
@@ -17,10 +86,24 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.5rem;
+  padding: 0.4rem 0.2rem 0.85rem;
 }
-
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.brand-photo {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 28%;
+  box-shadow: var(--shadow);
+}
+.brand h1 {
+  margin: 0;
+}
 .userbar {
   display: flex;
   gap: 0.6rem;
@@ -28,31 +111,51 @@
   font-size: 0.85rem;
   color: var(--muted);
 }
+.userbar button {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.14s ease;
+}
+.userbar button:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
 
 .tabs {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
-  margin: 1rem 0;
-  border-bottom: 1px solid var(--border);
+  margin: 0.4rem 0 1rem;
 }
 .tabs button {
-  background: none;
-  border: none;
-  padding: 0.5rem 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.45rem 1rem;
   color: var(--text);
-  border-bottom: 2px solid transparent;
+  border-radius: 999px;
+  font-family: var(--display);
+  transition: all 0.14s ease;
+}
+.tabs button:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  transform: translateY(-1px);
 }
 .tabs button.active {
-  border-bottom-color: var(--accent);
-  color: var(--text-h);
-  font-weight: 600;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  border-color: transparent;
+  color: var(--on-accent);
+  box-shadow: var(--shadow);
 }
 
 .content {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
+/* ---------- 입력 폼 ---------- */
 .entry-form {
   display: flex;
   gap: 0.5rem;
@@ -63,54 +166,84 @@
 .entry-form input,
 .entry-form select,
 .month-picker {
-  padding: 0.45rem;
+  padding: 0.5rem 0.6rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   color: var(--text-h);
+  transition: border-color 0.14s ease, box-shadow 0.14s ease;
 }
 .entry-form input[type='number'] {
   width: 130px;
 }
 .entry-form button {
-  padding: 0.45rem 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--accent-bg);
-  color: var(--text-h);
+  padding: 0.5rem 0.95rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: var(--on-accent);
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.entry-form button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-pop);
 }
 
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+/* ---------- 표 ---------- */
 table {
   border-collapse: collapse;
   width: 100%;
-  margin: 0.75rem 0;
+  margin: 0.5rem 0 0;
 }
 th,
 td {
-  border: 1px solid var(--border);
-  padding: 0.4rem 0.55rem;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.6rem;
   text-align: left;
   font-size: 0.9rem;
 }
 th {
   color: var(--muted);
-  font-weight: 500;
+  font-weight: 600;
+}
+tbody tr:last-child td {
+  border-bottom: none;
+}
+tbody tr {
+  transition: background 0.12s ease;
 }
 .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 .total td {
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text-h);
+  border-top: 2px solid var(--accent-bg);
 }
 .ledger button {
   margin-right: 0.25rem;
   font-size: 0.8rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0.28rem 0.6rem;
   border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--bg);
-  color: var(--text-h);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+}
+.ledger button:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .new-month {
@@ -119,9 +252,9 @@ th {
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  padding: 0.6rem 0.8rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.9rem;
   margin: 0.25rem 0 0.75rem;
   font-size: 0.9rem;
   color: var(--muted);
@@ -132,22 +265,37 @@ th {
   align-items: center;
 }
 .new-month-actions select {
-  padding: 0.4rem;
+  padding: 0.45rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   color: var(--text-h);
 }
 .new-month-actions button {
-  padding: 0.45rem 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--accent-bg);
-  color: var(--text-h);
+  padding: 0.5rem 0.95rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: var(--on-accent);
+  font-weight: 700;
+  box-shadow: var(--shadow);
 }
 
+/* ---------- 월별 ---------- */
 .summary {
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
+}
+.summary-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.summary-photo {
+  width: 74px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: var(--shadow);
 }
 .month-picker {
   margin: 0;
@@ -170,47 +318,53 @@ th {
   position: relative;
 }
 .month-dd-btn {
-  padding: 0.45rem 0.7rem;
+  padding: 0.5rem 0.85rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
+  border-radius: 999px;
+  background: var(--surface);
   color: var(--text-h);
-  min-width: 6.5rem;
+  min-width: 7rem;
   text-align: left;
+  font-family: var(--display);
   font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow);
+  transition: border-color 0.14s ease;
+}
+.month-dd-btn:hover {
+  border-color: var(--accent);
 }
 .month-dd-list {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   z-index: 20;
   margin: 0;
-  padding: 0.25rem;
+  padding: 0.3rem;
   list-style: none;
   max-height: 240px;
   overflow-y: auto;
   min-width: 100%;
-  background: var(--bg);
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
 }
 .month-dd-list li button {
   width: 100%;
   text-align: left;
-  padding: 0.35rem 0.55rem;
+  padding: 0.4rem 0.6rem;
   border: none;
   background: none;
   color: var(--text-h);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-variant-numeric: tabular-nums;
 }
 .month-dd-list li button:hover {
   background: var(--accent-bg);
 }
 .month-dd-list li button.active {
-  color: var(--accent);
-  font-weight: 600;
+  color: var(--accent-strong);
+  font-weight: 700;
 }
 .monthly-actions {
   display: flex;
@@ -218,29 +372,61 @@ th {
   align-items: center;
 }
 .save-btn {
-  padding: 0.45rem 1.1rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--accent-bg);
-  color: var(--text-h);
-  font-weight: 600;
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: var(--on-accent);
+  font-weight: 700;
+  font-family: var(--display);
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.save-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-pop);
 }
 .next-month {
-  padding: 0.45rem 0.8rem;
+  padding: 0.5rem 0.9rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  color: var(--text-h);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.14s ease;
+}
+.next-month:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 .empty-month {
-  padding: 1.5rem 0;
+  text-align: center;
+  padding: 2.25rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+.empty-photo {
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center 22%;
+  box-shadow: var(--shadow);
+  animation: float 3.6s ease-in-out infinite;
 }
 .save-btn:disabled {
   opacity: 0.5;
 }
 
+/* ---------- 그리드(편집 표) ---------- */
 .grid-block {
   margin-top: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.85rem 1.05rem 1rem;
 }
 .grid-block h3 {
   margin: 0 0 0.25rem;
@@ -250,15 +436,15 @@ th {
   width: 44%;
 }
 .grid td {
-  padding: 0.2rem 0.3rem;
+  padding: 0.25rem 0.35rem;
 }
 .grid .amount-input,
 .grid .item-input {
   width: 100%;
-  padding: 0.3rem 0.4rem;
+  padding: 0.35rem 0.45rem;
   border: 1px solid transparent;
-  border-radius: 5px;
-  background: var(--bg);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
   color: var(--text-h);
   font-size: 0.9rem;
 }
@@ -269,7 +455,9 @@ th {
 .grid .amount-input:focus,
 .grid .item-input:focus {
   border-color: var(--accent);
+  background: var(--surface);
   outline: none;
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
 .grid tfoot td {
   border: none;
@@ -277,16 +465,32 @@ th {
 }
 .add-row {
   width: 100%;
-  padding: 0.4rem;
-  border: 1px dashed var(--border);
-  border-radius: 6px;
+  padding: 0.5rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--muted);
   cursor: pointer;
+  transition: all 0.14s ease;
 }
 .add-row:hover {
-  color: var(--text-h);
+  color: var(--accent-strong);
   border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* 집계 표도 카드로 */
+.summary table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  padding: 0 0.4rem;
+}
+.summary th,
+.summary td {
+  padding: 0.55rem 0.7rem;
 }
 
 .error {
@@ -296,6 +500,7 @@ th {
   color: var(--muted);
 }
 
+/* ---------- 대시보드 ---------- */
 .dash-controls {
   display: flex;
   gap: 1rem;
@@ -304,10 +509,10 @@ th {
   margin: 0.75rem 0;
 }
 .dash-controls select {
-  padding: 0.4rem;
+  padding: 0.45rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   color: var(--text-h);
 }
 .rate {
@@ -315,9 +520,11 @@ th {
   font-size: 0.9rem;
 }
 .rate strong {
-  color: var(--text-h);
+  color: var(--accent-strong);
+  font-family: var(--display);
 }
 
+/* ---------- 오류 배너 ---------- */
 .error-banner {
   display: flex;
   justify-content: space-between;
@@ -325,8 +532,10 @@ th {
   gap: 0.5rem;
   flex-wrap: wrap;
   border: 1px solid var(--error);
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 0.6rem 0.85rem;
   margin: 0.5rem 0;
 }
 .banner-actions {
@@ -334,17 +543,21 @@ th {
   gap: 0.5rem;
 }
 .banner-actions button {
-  padding: 0.3rem 0.6rem;
+  padding: 0.35rem 0.7rem;
   border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--bg);
-  color: var(--text-h);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+}
+.banner-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 textarea {
   padding: 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   color: var(--text-h);
 }
 
@@ -359,6 +572,6 @@ textarea {
   th,
   td {
     font-size: 0.8rem;
-    padding: 0.3rem;
+    padding: 0.4rem 0.35rem;
   }
 }

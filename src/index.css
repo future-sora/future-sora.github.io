@@ -1,34 +1,33 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --accent: #7c3aed;
-  --accent-bg: rgba(124, 58, 237, 0.1);
-  --error: #c0392b;
-  --muted: #888;
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --text: #5c5650;
+  --text-h: #2b2a2e;
+  --bg: #f5f1eb;
+  --surface: #fffdf9;
+  --surface-2: #ece4d9;
+  --border: #e1d9cc;
+  --accent: #1a7a7d;
+  --accent-strong: #14605f;
+  --accent-bg: #e1edec;
+  --accent-2: #efc39b;
+  --error: #c15f54;
+  --muted: #998f85;
+  --on-accent: #ffffff;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 6px 18px rgba(80, 70, 60, 0.12);
+  --shadow-pop: 0 10px 26px rgba(60, 55, 50, 0.2);
+
+  --sans: 'Pretendard', system-ui, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+  --display: 'Jua', var(--sans);
 
   font-family: var(--sans);
   font-size: 16px;
-  line-height: 1.5;
-  color-scheme: light dark;
+  line-height: 1.55;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --muted: #9ca3af;
-  }
 }
 
 * {
@@ -36,18 +35,26 @@
 }
 body {
   margin: 0;
+  background:
+    radial-gradient(1200px 480px at 50% -160px, var(--accent-bg), transparent 70%),
+    var(--bg);
+  min-height: 100vh;
 }
 h1 {
-  font-size: 1.5rem;
+  font-family: var(--display);
+  font-size: 1.6rem;
   color: var(--text-h);
   margin: 0.3rem 0;
+  letter-spacing: 0.01em;
 }
 h2 {
-  font-size: 1.2rem;
+  font-family: var(--display);
+  font-size: 1.25rem;
   color: var(--text-h);
 }
 h3 {
-  font-size: 1rem;
+  font-family: var(--display);
+  font-size: 1.05rem;
   color: var(--text-h);
   margin: 0.5rem 0;
 }
@@ -61,4 +68,7 @@ button {
 input,
 select {
   font: inherit;
+}
+::selection {
+  background: var(--accent-bg);
 }

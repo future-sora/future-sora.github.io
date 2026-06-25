@@ -387,7 +387,10 @@ export function MonthlyView() {
       {formError && <p className="error">{formError}</p>}
 
       {!showTables ? (
-        <p className="muted empty-month">저장된 데이터가 없습니다.</p>
+        <div className="empty-month">
+          <img className="empty-photo" src="/img/char-empty.png" alt="" />
+          <p className="muted">저장된 데이터가 없어요. ‘추가’로 시작해 보세요!</p>
+        </div>
       ) : (
         <>
           {TYPES.map((type) => (
@@ -472,7 +475,10 @@ export function MonthlyView() {
           ))}
 
           <div className="summary">
-            <h3>{month} 집계 (만원)</h3>
+            <div className="summary-head">
+              <h3>{month} 집계 (만원)</h3>
+              <img className="summary-photo" src="/img/char-vee.png" alt="" />
+            </div>
             <table>
               <thead>
                 <tr>
