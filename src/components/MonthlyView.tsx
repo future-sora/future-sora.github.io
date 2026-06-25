@@ -6,13 +6,13 @@ import { summarizeMonth, previousMonthWithData, listMonths } from '../domain/agg
 import { ITEM_PRESETS } from '../domain/categories'
 import { newId, currentMonth, fmtMoney } from '../lib/util'
 import { MonthDropdown } from './MonthDropdown'
+import { useRowDnD } from '../lib/useRowDnD'
 
 const TYPES: EntryType[] = ['소득', '소비']
 
 interface EditRow {
   id: string // React key (세션 내 안정). 프리셋/기존 항목은 `type:item`, 추가 행은 uuid.
-  item: string // 항목명(추가 행만 편집 가능)
-  fixed: boolean // 기존/프리셋 항목이면 이름 고정(라벨)
+  item: string // 항목명(편집모드에서 변경 가능)
   amounts: Record<Person, string> // 사람별 입력 문자열(만원)
 }
 
@@ -51,8 +51,8 @@ function buildRows(
   const prevItems = prefillMonth
     ? ledger.filter((e) => e.month === prefillMonth && e.type === type).map((e) => e.item)
     : []
-  const order = ITEM_PRESETS[type]
   const rows: EditRow[] = []
+  // 시트 행 순서(등장 순)를 그대로 표시 순서로 쓴다(저장 시 순서대로 재기록되므로 유지됨).
   for (const item of [...new Set([...monthItems, ...prevItems, ...alwaysShow])]) {
     const amounts = Object.fromEntries(
       PERSONS.map((p) => {
@@ -67,14 +67,8 @@ function buildRows(
     ) as Record<Person, string>
     // 빈 항목 숨김. 단 alwaysShow(월급 등)는 빈 채로도 표시.
     if (PERSONS.every((p) => amounts[p] === '') && !alwaysShow.includes(item)) continue
-    rows.push({ id: `${type}:${item}`, item, fixed: true, amounts })
+    rows.push({ id: `${type}:${item}`, item, amounts })
   }
-  // 프리셋 순서 우선, 그 외 항목은 뒤(안정 정렬)
-  rows.sort((a, b) => {
-    const ia = order.indexOf(a.item)
-    const ib = order.indexOf(b.item)
-    return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib)
-  })
   return rows
 }
 
@@ -99,7 +93,6 @@ function emptyRow(): EditRow {
   return {
     id: newId(),
     item: '',
-    fixed: false,
     amounts: Object.fromEntries(PERSONS.map((p) => [p, ''])) as Record<Person, string>,
   }
 }
@@ -121,6 +114,18 @@ export function MonthlyView() {
   const [initialized, setInitialized] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  // 드래그로 같은 표(소득/소비) 안에서 행 순서 변경.
+  const dnd = useRowDnD<{ type: EntryType; i: number }>((from, to) => {
+    if (from.type !== to.type) return
+    setGrid((g) => {
+      const arr = [...g[from.type]]
+      const [m] = arr.splice(from.i, 1)
+      arr.splice(to.i, 0, m)
+      return { ...g, [from.type]: arr }
+    })
+    setDirty(true)
+  })
 
   const latestMonth = useMemo(() => listMonths(ledger)[0] ?? null, [ledger])
   // 드롭다운 후보: 데이터 있는 달 + 현재 선택 달, 최신순(최근이 맨 위).
@@ -209,21 +214,16 @@ export function MonthlyView() {
     setDirty(true)
   }
 
-  async function save() {
-    // 현재 시트 상태를 셀 키(type|item|person)별로 모은다(중복 항목은 합산·id 누적).
-    const original = new Map<string, { ids: string[]; amount: number }>()
-    for (const e of ledger) {
-      if (e.month !== month) continue
-      const k = `${e.type}|${e.item}|${e.person}`
-      const cur = original.get(k) ?? { ids: [], amount: 0 }
-      cur.ids.push(e.id)
-      cur.amount += e.amount
-      original.set(k, cur)
-    }
+  function removeRow(type: EntryType, rowId: string) {
+    setGrid((g) => ({ ...g, [type]: g[type].filter((r) => r.id !== rowId) }))
+    setDirty(true)
+  }
 
+  async function save() {
+    // 이 달의 행을 현재 표(순서 그대로)로 통째로 재기록한다.
+    // 순서·삭제·이름변경이 한 번에 반영된다(다른 달은 건드리지 않음).
+    const deletes: string[] = ledger.filter((e) => e.month === month).map((e) => e.id)
     const creates: LedgerEntry[] = []
-    const updates: LedgerEntry[] = []
-    const deletes: string[] = []
     const seen = new Set<string>()
 
     for (const type of TYPES) {
@@ -235,34 +235,18 @@ export function MonthlyView() {
           if (seen.has(k)) continue // 같은 키 중복 행이면 첫 행만 반영
           seen.add(k)
           const raw = row.amounts[p].trim()
+          if (raw === '') continue
           const v = Number(raw)
-          if (raw !== '' && (!Number.isFinite(v) || v <= 0)) {
+          if (!Number.isFinite(v) || v <= 0) {
             setFormError(`금액은 0보다 큰 숫자여야 합니다. (${type} · ${item} · ${p})`)
             return
           }
-          const orig = original.get(k)
-          if (raw !== '' && v > 0) {
-            if (orig) {
-              if (!(orig.ids.length === 1 && orig.amount === v)) {
-                updates.push({ id: orig.ids[0], month, person: p, type, item, amount: v })
-                for (const extra of orig.ids.slice(1)) deletes.push(extra)
-              }
-            } else {
-              creates.push({ id: newId(), month, person: p, type, item, amount: v })
-            }
-          } else if (orig) {
-            for (const id of orig.ids) deletes.push(id)
-          }
+          creates.push({ id: newId(), month, person: p, type, item, amount: v })
         }
       }
     }
 
-    // 표에서 사라진 항목(행 삭제·이름 변경)은 시트에서 삭제
-    for (const [k, orig] of original) {
-      if (!seen.has(k)) for (const id of orig.ids) deletes.push(id)
-    }
-
-    if (creates.length === 0 && updates.length === 0 && deletes.length === 0) {
+    if (deletes.length === 0 && creates.length === 0) {
       setDirty(false)
       setFormError(null)
       setEditing(false)
@@ -273,7 +257,7 @@ export function MonthlyView() {
     setBusy(true)
     setFormError(null)
     try {
-      await applyLedgerChanges({ creates, updates, deletes })
+      await applyLedgerChanges({ creates, updates: [], deletes })
       setEditing(false) // 저장하면 조회 모드로
       setEntering(false)
     } catch {
@@ -364,19 +348,37 @@ export function MonthlyView() {
                       </td>
                     </tr>
                   )}
-                  {grid[type].map((row) => (
-                    <tr key={row.id}>
+                  {grid[type].map((row, i) => (
+                    <tr key={row.id} {...(inputs ? dnd.zone({ type, i }) : {})}>
                       <td>
-                        {!inputs || row.fixed ? (
-                          row.item
+                        {inputs ? (
+                          <span className="kind-edit">
+                            <button
+                              type="button"
+                              className="row-btn drag-handle"
+                              title="드래그로 순서 변경"
+                              {...dnd.handle({ type, i })}
+                            >
+                              ≡
+                            </button>
+                            <input
+                              className="item-input"
+                              list={`cat-${type}`}
+                              placeholder="항목 선택/입력"
+                              value={row.item}
+                              onChange={(e) => setName(type, row.id, e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="row-btn row-del"
+                              title="삭제"
+                              onClick={() => removeRow(type, row.id)}
+                            >
+                              ✕
+                            </button>
+                          </span>
                         ) : (
-                          <input
-                            className="item-input"
-                            list={`cat-${type}`}
-                            placeholder="항목 선택/입력"
-                            value={row.item}
-                            onChange={(e) => setName(type, row.id, e.target.value)}
-                          />
+                          row.item
                         )}
                       </td>
                       {PERSONS.map((p) => (
