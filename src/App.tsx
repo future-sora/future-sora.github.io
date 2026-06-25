@@ -55,8 +55,8 @@ function App() {
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'monthly', label: '월별 입력' },
-  { key: 'dashboard', label: '대시보드' },
   { key: 'assets', label: '자산·목표' },
+  { key: 'dashboard', label: '대시보드' },
 ]
 
 function Shell() {
@@ -79,7 +79,7 @@ function Shell() {
         <h1>kakebu</h1>
         <div className="userbar">
           <span>
-            {email} {person ? `(${person})` : '(사람 미지정)'}
+            {email} {person || '사람 미지정'}
           </span>
           <button type="button" onClick={signOut}>
             로그아웃
