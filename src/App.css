@@ -62,7 +62,7 @@
 }
 .entry-form input,
 .entry-form select,
-.month-picker input {
+.month-picker {
   padding: 0.45rem;
   border: 1px solid var(--border);
   border-radius: 6px;

@@ -236,14 +236,13 @@ export function MonthlyView() {
   return (
     <section className="monthly">
       <div className="monthly-top">
-        <label className="month-picker">
-          월{' '}
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-          />
-        </label>
+        <input
+          className="month-picker"
+          type="month"
+          aria-label="월 선택"
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+        />
         {editable ? (
           <button
             type="button"
@@ -347,24 +346,40 @@ export function MonthlyView() {
           <thead>
             <tr>
               <th></th>
-              <th>소득</th>
-              <th>소비</th>
-              <th>저축가능</th>
+              {PERSONS.map((p) => (
+                <th key={p} className="num">
+                  {p}
+                </th>
+              ))}
+              <th className="num">합계</th>
             </tr>
           </thead>
           <tbody>
-            {PERSONS.map((p) => (
-              <tr key={p}>
-                <td>{p}</td>
-                <td className="num">{fmtMoney(summary.byPerson[p].income)}</td>
-                <td className="num">{fmtMoney(summary.byPerson[p].expense)}</td>
-                <td className="num">{fmtMoney(summary.byPerson[p].savable)}</td>
-              </tr>
-            ))}
-            <tr className="total">
-              <td>합계</td>
+            <tr>
+              <td>소득</td>
+              {PERSONS.map((p) => (
+                <td key={p} className="num">
+                  {fmtMoney(summary.byPerson[p].income)}
+                </td>
+              ))}
               <td className="num">{fmtMoney(summary.total.income)}</td>
+            </tr>
+            <tr>
+              <td>소비</td>
+              {PERSONS.map((p) => (
+                <td key={p} className="num">
+                  {fmtMoney(summary.byPerson[p].expense)}
+                </td>
+              ))}
               <td className="num">{fmtMoney(summary.total.expense)}</td>
+            </tr>
+            <tr className="total">
+              <td>저축가능</td>
+              {PERSONS.map((p) => (
+                <td key={p} className="num">
+                  {fmtMoney(summary.byPerson[p].savable)}
+                </td>
+              ))}
               <td className="num">{fmtMoney(summary.total.savable)}</td>
             </tr>
           </tbody>
