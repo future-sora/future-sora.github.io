@@ -153,6 +153,76 @@ th {
   display: inline-block;
   margin: 0.25rem 0 0.75rem;
 }
+
+.monthly-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.save-btn {
+  padding: 0.45rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-weight: 600;
+}
+.save-btn:disabled {
+  opacity: 0.5;
+}
+
+.grid-block {
+  margin-top: 1rem;
+}
+.grid-block h3 {
+  margin: 0 0 0.25rem;
+}
+.grid th:first-child,
+.grid td:first-child {
+  width: 44%;
+}
+.grid td {
+  padding: 0.2rem 0.3rem;
+}
+.grid .amount-input,
+.grid .item-input {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-h);
+  font-size: 0.9rem;
+}
+.grid .amount-input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.grid .amount-input:focus,
+.grid .item-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.grid tfoot td {
+  border: none;
+  padding: 0.4rem 0 0;
+}
+.add-row {
+  width: 100%;
+  padding: 0.4rem;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.add-row:hover {
+  color: var(--text-h);
+  border-color: var(--accent);
+}
+
 .error {
   color: var(--error);
 }

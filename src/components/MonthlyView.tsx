@@ -1,116 +1,209 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../data/DataContext'
-import { useAuth } from '../auth/AuthContext'
 import { PERSONS, type Person } from '../config'
 import type { EntryType, LedgerEntry } from '../domain/types'
-import {
-  summarizeMonth,
-  listMonths,
-  previousMonthWithData,
-  carryForward,
-} from '../domain/aggregate'
-import { itemSuggestions } from '../domain/categories'
+import { summarizeMonth, previousMonthWithData } from '../domain/aggregate'
+import { ITEM_PRESETS } from '../domain/categories'
 import { newId, currentMonth, fmtMoney } from '../lib/util'
 
-interface FormState {
-  editId: string | null
-  person: Person
-  type: EntryType
-  item: string
-  amount: string
+const TYPES: EntryType[] = ['소득', '소비']
+
+interface EditRow {
+  id: string // React key (세션 내 안정). 프리셋/기존 항목은 `type:item`, 추가 행은 uuid.
+  item: string // 항목명(추가 행만 편집 가능)
+  fixed: boolean // 프리셋 행이면 이름 고정
+  amounts: Record<Person, string> // 사람별 입력 문자열(만원)
+}
+
+type Grid = Record<EntryType, EditRow[]>
+
+function sumCell(
+  entries: LedgerEntry[],
+  month: string,
+  type: EntryType,
+  item: string,
+  person: Person,
+): number {
+  return entries
+    .filter(
+      (e) =>
+        e.month === month && e.type === type && e.item === item && e.person === person,
+    )
+    .reduce((s, e) => s + e.amount, 0)
+}
+
+/**
+ * 해당 달·구분의 항목을 (프리셋 + 기존 데이터) 순으로 행 구성. 셀 = 사람별 금액 합.
+ * prefillMonth가 있으면(이번달이 비었을 때) 빈 셀을 그 달 값으로 미리 채운다(소비만).
+ */
+function buildRows(
+  type: EntryType,
+  ledger: LedgerEntry[],
+  month: string,
+  prefillMonth: string | null,
+): EditRow[] {
+  const presets = ITEM_PRESETS[type]
+  const monthItems = ledger
+    .filter((e) => e.month === month && e.type === type)
+    .map((e) => e.item)
+  const prevItems = prefillMonth
+    ? ledger.filter((e) => e.month === prefillMonth && e.type === type).map((e) => e.item)
+    : []
+  const extras = [...new Set([...monthItems, ...prevItems])].filter(
+    (i) => !presets.includes(i),
+  )
+  return [...presets, ...extras].map((item) => ({
+    id: `${type}:${item}`,
+    item,
+    fixed: presets.includes(item),
+    amounts: Object.fromEntries(
+      PERSONS.map((p) => {
+        const saved = sumCell(ledger, month, type, item, p)
+        if (saved > 0) return [p, fmtMoney(saved)]
+        if (prefillMonth) {
+          const prev = sumCell(ledger, prefillMonth, type, item, p)
+          return [p, prev > 0 ? fmtMoney(prev) : '']
+        }
+        return [p, '']
+      }),
+    ) as Record<Person, string>,
+  }))
+}
+
+/** 이번달이고 아직 비었으면 직전 달을 소비 미리채움 원본으로. 그 외엔 null. */
+function buildGrid(
+  ledger: LedgerEntry[],
+  month: string,
+): { grid: Grid; prefilled: boolean } {
+  const isCurrent = month === currentMonth()
+  const isEmpty = !ledger.some((e) => e.month === month)
+  const prefillMonth =
+    isCurrent && isEmpty ? previousMonthWithData(ledger, month) : null
+  return {
+    grid: {
+      소득: buildRows('소득', ledger, month, null), // 월급은 미리채우지 않음
+      소비: buildRows('소비', ledger, month, prefillMonth),
+    },
+    prefilled: prefillMonth != null,
+  }
+}
+
+function emptyRow(): EditRow {
+  return {
+    id: newId(),
+    item: '',
+    fixed: false,
+    amounts: Object.fromEntries(PERSONS.map((p) => [p, ''])) as Record<Person, string>,
+  }
 }
 
 export function MonthlyView() {
-  const { ledger, ledgerOps, bulkAddLedger } = useData()
-  const { person: myPerson } = useAuth()
+  const { ledger, applyLedgerChanges } = useData()
   const [month, setMonth] = useState(currentMonth())
-  const [form, setForm] = useState<FormState>({
-    editId: null,
-    person: myPerson ?? PERSONS[0],
-    type: '소비',
-    item: '',
-    amount: '',
-  })
+  const [grid, setGrid] = useState<Grid>(() => buildGrid(ledger, month).grid)
+  const [dirty, setDirty] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [copySource, setCopySource] = useState('')
-  const [copyBusy, setCopyBusy] = useState(false)
 
-  const rows = useMemo(
-    () => ledger.filter((e) => e.month === month),
-    [ledger, month],
-  )
-  const summary = useMemo(() => summarizeMonth(ledger, month), [ledger, month])
-  const suggestions = useMemo(
-    () => itemSuggestions(form.type, ledger),
-    [form.type, ledger],
-  )
+  // 지난 달은 조회 전용, 이번달(및 이후)만 입력 가능.
+  const editable = month >= currentMonth()
 
-  // 복제 원본 후보: 데이터 있는 다른 달(내림차순). 기본값은 직전 달.
-  const sourceMonths = useMemo(
-    () => listMonths(ledger).filter((m) => m !== month),
-    [ledger, month],
-  )
-  const defaultSource = useMemo(
-    () => previousMonthWithData(ledger, month) ?? sourceMonths[0] ?? '',
-    [ledger, month, sourceMonths],
-  )
-  const effectiveSource = copySource || defaultSource
-  const copyCount = useMemo(
-    () => ledger.filter((e) => e.month === effectiveSource).length,
-    [ledger, effectiveSource],
-  )
-
-  // 달을 바꾸면 원본 선택을 기본값으로 되돌린다.
+  // 시트 데이터(ledger) 또는 달이 바뀌면 표를 다시 구성(저장 후 재로드 포함).
   useEffect(() => {
-    setCopySource('')
-  }, [month])
-
-  async function createFromMonth() {
-    if (!effectiveSource) return
-    const entries = carryForward(ledger, effectiveSource, month, newId)
-    if (entries.length === 0) return
-    setCopyBusy(true)
-    try {
-      await bulkAddLedger(entries)
-      setCopySource('')
-    } catch {
-      /* 에러는 상단 배너로 표시됨 */
-    } finally {
-      setCopyBusy(false)
-    }
-  }
-
-  function resetForm() {
-    setForm((f) => ({ ...f, editId: null, item: '', amount: '' }))
+    const { grid: g, prefilled } = buildGrid(ledger, month)
+    setGrid(g)
+    setDirty(prefilled) // 미리채운 초안은 바로 저장할 수 있게 dirty
     setFormError(null)
+  }, [ledger, month])
+
+  const summary = useMemo(() => summarizeMonth(ledger, month), [ledger, month])
+
+  function setAmount(type: EntryType, rowId: string, person: Person, value: string) {
+    setGrid((g) => ({
+      ...g,
+      [type]: g[type].map((r) =>
+        r.id === rowId ? { ...r, amounts: { ...r.amounts, [person]: value } } : r,
+      ),
+    }))
+    setDirty(true)
   }
 
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    const item = form.item.trim()
-    const amount = Number(form.amount)
-    if (!item) {
-      setFormError('항목을 입력하세요.')
+  function setName(type: EntryType, rowId: string, value: string) {
+    setGrid((g) => ({
+      ...g,
+      [type]: g[type].map((r) => (r.id === rowId ? { ...r, item: value } : r)),
+    }))
+    setDirty(true)
+  }
+
+  function addRow(type: EntryType) {
+    setGrid((g) => ({ ...g, [type]: [...g[type], emptyRow()] }))
+    setDirty(true)
+  }
+
+  async function save() {
+    // 현재 시트 상태를 셀 키(type|item|person)별로 모은다(중복 항목은 합산·id 누적).
+    const original = new Map<string, { ids: string[]; amount: number }>()
+    for (const e of ledger) {
+      if (e.month !== month) continue
+      const k = `${e.type}|${e.item}|${e.person}`
+      const cur = original.get(k) ?? { ids: [], amount: 0 }
+      cur.ids.push(e.id)
+      cur.amount += e.amount
+      original.set(k, cur)
+    }
+
+    const creates: LedgerEntry[] = []
+    const updates: LedgerEntry[] = []
+    const deletes: string[] = []
+    const seen = new Set<string>()
+
+    for (const type of TYPES) {
+      for (const row of grid[type]) {
+        const item = row.item.trim()
+        if (!item) continue
+        for (const p of PERSONS) {
+          const k = `${type}|${item}|${p}`
+          if (seen.has(k)) continue // 같은 키 중복 행이면 첫 행만 반영
+          seen.add(k)
+          const raw = row.amounts[p].trim()
+          const v = Number(raw)
+          if (raw !== '' && (!Number.isFinite(v) || v <= 0)) {
+            setFormError(`금액은 0보다 큰 숫자여야 합니다. (${type} · ${item} · ${p})`)
+            return
+          }
+          const orig = original.get(k)
+          if (raw !== '' && v > 0) {
+            if (orig) {
+              if (!(orig.ids.length === 1 && orig.amount === v)) {
+                updates.push({ id: orig.ids[0], month, person: p, type, item, amount: v })
+                for (const extra of orig.ids.slice(1)) deletes.push(extra)
+              }
+            } else {
+              creates.push({ id: newId(), month, person: p, type, item, amount: v })
+            }
+          } else if (orig) {
+            for (const id of orig.ids) deletes.push(id)
+          }
+        }
+      }
+    }
+
+    // 표에서 사라진 항목(행 삭제·이름 변경)은 시트에서 삭제
+    for (const [k, orig] of original) {
+      if (!seen.has(k)) for (const id of orig.ids) deletes.push(id)
+    }
+
+    if (creates.length === 0 && updates.length === 0 && deletes.length === 0) {
+      setDirty(false)
+      setFormError(null)
       return
     }
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setFormError('금액은 0보다 큰 숫자여야 합니다.')
-      return
-    }
-    const entry: LedgerEntry = {
-      id: form.editId ?? newId(),
-      month,
-      person: form.person,
-      type: form.type,
-      item,
-      amount,
-    }
+
     setBusy(true)
+    setFormError(null)
     try {
-      if (form.editId) await ledgerOps.update(entry)
-      else await ledgerOps.add(entry)
-      resetForm()
+      await applyLedgerChanges({ creates, updates, deletes })
     } catch {
       setFormError('저장에 실패했습니다. 다시 시도하세요.')
     } finally {
@@ -118,144 +211,100 @@ export function MonthlyView() {
     }
   }
 
-  function startEdit(entry: LedgerEntry) {
-    setForm({
-      editId: entry.id,
-      person: entry.person,
-      type: entry.type,
-      item: entry.item,
-      amount: String(entry.amount),
-    })
-    setFormError(null)
-  }
-
-  async function remove(id: string) {
-    setBusy(true)
-    try {
-      await ledgerOps.remove(id)
-      if (form.editId === id) resetForm()
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
     <section className="monthly">
-      <label className="month-picker">
-        월{' '}
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-        />
-      </label>
-
-      {rows.length === 0 && effectiveSource && (
-        <div className="new-month">
-          <span>
-            {month}은 아직 비어 있어요. 지난 달 정기 항목을 복제해 시작하세요.
-          </span>
-          <span className="new-month-actions">
-            <select
-              value={effectiveSource}
-              onChange={(e) => setCopySource(e.target.value)}
-              disabled={copyBusy}
-            >
-              {sourceMonths.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-            <button type="button" onClick={createFromMonth} disabled={copyBusy}>
-              {copyBusy ? '복제 중…' : `${effectiveSource} 항목 ${copyCount}개 복제`}
-            </button>
-          </span>
-        </div>
-      )}
-
-      <form onSubmit={submit} className="entry-form">
-        <select
-          value={form.person}
-          onChange={(e) => setForm({ ...form, person: e.target.value as Person })}
-        >
-          {PERSONS.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <select
-          value={form.type}
-          onChange={(e) =>
-            setForm({ ...form, type: e.target.value as EntryType })
-          }
-        >
-          <option value="소득">소득</option>
-          <option value="소비">소비</option>
-        </select>
-        <input
-          list="item-suggestions"
-          placeholder="항목"
-          value={form.item}
-          onChange={(e) => setForm({ ...form, item: e.target.value })}
-        />
-        <datalist id="item-suggestions">
-          {suggestions.map((s) => (
-            <option key={s} value={s} />
-          ))}
-        </datalist>
-        <input
-          type="number"
-          step="0.1"
-          min="0"
-          placeholder="금액(만원)"
-          value={form.amount}
-          onChange={(e) => setForm({ ...form, amount: e.target.value })}
-        />
-        <button type="submit" disabled={busy}>
-          {form.editId ? '수정' : '추가'}
-        </button>
-        {form.editId && (
-          <button type="button" onClick={resetForm} disabled={busy}>
-            취소
+      <div className="monthly-top">
+        <label className="month-picker">
+          월{' '}
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          />
+        </label>
+        {editable ? (
+          <button
+            type="button"
+            onClick={save}
+            disabled={!dirty || busy}
+            className="save-btn"
+          >
+            {busy ? '저장 중…' : '저장'}
           </button>
+        ) : (
+          <span className="muted readonly-tag">지난 달 · 조회 전용</span>
         )}
-      </form>
+      </div>
+
       {formError && <p className="error">{formError}</p>}
 
-      <table className="ledger">
-        <thead>
-          <tr>
-            <th>사람</th>
-            <th>구분</th>
-            <th>항목</th>
-            <th>금액</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 && (
-            <tr>
-              <td colSpan={5}>이 달 입력이 없습니다.</td>
-            </tr>
-          )}
-          {rows.map((e) => (
-            <tr key={e.id}>
-              <td>{e.person}</td>
-              <td>{e.type}</td>
-              <td>{e.item}</td>
-              <td className="num">{fmtMoney(e.amount)}</td>
-              <td>
-                <button type="button" onClick={() => startEdit(e)} disabled={busy}>
-                  수정
-                </button>
-                <button type="button" onClick={() => remove(e.id)} disabled={busy}>
-                  삭제
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {TYPES.map((type) => (
+        <div key={type} className="grid-block">
+          <h3>{type}</h3>
+          <table className="grid">
+            <thead>
+              <tr>
+                <th>항목</th>
+                {PERSONS.map((p) => (
+                  <th key={p} className="num">
+                    {p}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {grid[type].map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    {row.fixed || !editable ? (
+                      row.item
+                    ) : (
+                      <input
+                        className="item-input"
+                        placeholder="항목명"
+                        value={row.item}
+                        onChange={(e) => setName(type, row.id, e.target.value)}
+                      />
+                    )}
+                  </td>
+                  {PERSONS.map((p) => (
+                    <td key={p} className="num">
+                      {editable ? (
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          inputMode="decimal"
+                          className="amount-input"
+                          value={row.amounts[p]}
+                          onChange={(e) => setAmount(type, row.id, p, e.target.value)}
+                        />
+                      ) : (
+                        row.amounts[p]
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+            {editable && (
+              <tfoot>
+                <tr>
+                  <td colSpan={PERSONS.length + 1}>
+                    <button
+                      type="button"
+                      className="add-row"
+                      onClick={() => addRow(type)}
+                    >
+                      + 항목 추가
+                    </button>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      ))}
 
       <div className="summary">
         <h3>{month} 집계 (만원)</h3>

@@ -43,6 +43,12 @@ interface DataValue {
   ledgerOps: Ops<LedgerEntry>
   /** 여러 ledger 항목을 한 번에 추가(한 번만 재로드). 예: 새 달 정기항목 복제. */
   bulkAddLedger: (entries: LedgerEntry[]) => Promise<void>
+  /** 표 편집 저장: 삭제·수정·추가를 한 번에 적용하고 한 번만 재로드. */
+  applyLedgerChanges: (changes: {
+    creates: LedgerEntry[]
+    updates: LedgerEntry[]
+    deletes: string[]
+  }) => Promise<void>
   assetOps: Ops<AssetEntry>
   goalOps: Ops<Goal>
 }
@@ -135,6 +141,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setError(null)
       try {
         await importLedger(entries)
+        await reload()
+      } catch (e) {
+        setError(errMsg(e))
+        throw e
+      }
+    },
+    applyLedgerChanges: async ({ creates, updates, deletes }) => {
+      setError(null)
+      try {
+        // 삭제 먼저(행 식별은 id 기반이라 순서 무관) → 수정 → 추가는 append.
+        for (const id of deletes) await deleteLedger(id)
+        for (const e of updates) await updateLedger(e)
+        if (creates.length > 0) await importLedger(creates)
         await reload()
       } catch (e) {
         setError(errMsg(e))
