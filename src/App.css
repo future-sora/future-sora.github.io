@@ -166,6 +166,52 @@ th {
   gap: 0.5rem;
   align-items: center;
 }
+.month-dd {
+  position: relative;
+}
+.month-dd-btn {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  min-width: 6.5rem;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.month-dd-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  min-width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+.month-dd-list li button {
+  width: 100%;
+  text-align: left;
+  padding: 0.35rem 0.55rem;
+  border: none;
+  background: none;
+  color: var(--text-h);
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.month-dd-list li button:hover {
+  background: var(--accent-bg);
+}
+.month-dd-list li button.active {
+  color: var(--accent);
+  font-weight: 600;
+}
 .monthly-actions {
   display: flex;
   gap: 0.5rem;
