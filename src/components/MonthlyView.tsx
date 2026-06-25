@@ -33,30 +33,27 @@ function sumCell(
 }
 
 /**
- * 해당 달·구분의 항목을 (프리셋 + 기존 데이터) 순으로 행 구성. 셀 = 사람별 금액 합.
- * prefillMonth가 있으면(이번달이 비었을 때) 빈 셀을 그 달 값으로 미리 채운다(소비만).
+ * 해당 달·구분의 항목 행을 구성. 값이 있는 항목만 보여준다(빈 항목은 숨김).
+ * prefillMonth가 있으면(새 달) 그 달의 항목·금액을 디폴트로 미리 채운다.
+ * alwaysShow 항목은 값이 없어도 항상 행으로 보인다(예: 월급).
  */
 function buildRows(
   type: EntryType,
   ledger: LedgerEntry[],
   month: string,
   prefillMonth: string | null,
+  alwaysShow: string[] = [],
 ): EditRow[] {
-  const presets = ITEM_PRESETS[type]
   const monthItems = ledger
     .filter((e) => e.month === month && e.type === type)
     .map((e) => e.item)
   const prevItems = prefillMonth
     ? ledger.filter((e) => e.month === prefillMonth && e.type === type).map((e) => e.item)
     : []
-  const extras = [...new Set([...monthItems, ...prevItems])].filter(
-    (i) => !presets.includes(i),
-  )
-  return [...presets, ...extras].map((item) => ({
-    id: `${type}:${item}`,
-    item,
-    fixed: presets.includes(item),
-    amounts: Object.fromEntries(
+  const order = ITEM_PRESETS[type]
+  const rows: EditRow[] = []
+  for (const item of [...new Set([...monthItems, ...prevItems, ...alwaysShow])]) {
+    const amounts = Object.fromEntries(
       PERSONS.map((p) => {
         const saved = sumCell(ledger, month, type, item, p)
         if (saved > 0) return [p, fmtMoney(saved)]
@@ -66,22 +63,32 @@ function buildRows(
         }
         return [p, '']
       }),
-    ) as Record<Person, string>,
-  }))
+    ) as Record<Person, string>
+    // 빈 항목 숨김. 단 alwaysShow(월급 등)는 빈 채로도 표시.
+    if (PERSONS.every((p) => amounts[p] === '') && !alwaysShow.includes(item)) continue
+    rows.push({ id: `${type}:${item}`, item, fixed: true, amounts })
+  }
+  // 프리셋 순서 우선, 그 외 항목은 뒤(안정 정렬)
+  rows.sort((a, b) => {
+    const ia = order.indexOf(a.item)
+    const ib = order.indexOf(b.item)
+    return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib)
+  })
+  return rows
 }
 
-/** 이번달이고 아직 비었으면 직전 달을 소비 미리채움 원본으로. 그 외엔 null. */
+/** 입력 가능한 달이 비었으면 직전(최근) 달을 미리채움 원본으로 — 소득·소비 모두. */
 function buildGrid(
   ledger: LedgerEntry[],
   month: string,
 ): { grid: Grid; prefilled: boolean } {
-  const isCurrent = month === currentMonth()
+  const editable = month >= currentMonth()
   const isEmpty = !ledger.some((e) => e.month === month)
-  const prefillMonth =
-    isCurrent && isEmpty ? previousMonthWithData(ledger, month) : null
+  const prefillMonth = editable && isEmpty ? previousMonthWithData(ledger, month) : null
   return {
     grid: {
-      소득: buildRows('소득', ledger, month, null), // 월급은 미리채우지 않음
+      // 월급은 금액은 안 채우되(직접 입력), 입력 가능한 달엔 행을 항상 보이게.
+      소득: buildRows('소득', ledger, month, null, editable ? ['월급'] : []),
       소비: buildRows('소비', ledger, month, prefillMonth),
     },
     prefilled: prefillMonth != null,
@@ -117,6 +124,21 @@ export function MonthlyView() {
   }, [ledger, month])
 
   const summary = useMemo(() => summarizeMonth(ledger, month), [ledger, month])
+
+  // 항목 추가 후보: 프리셋 + 지금껏 쓴 항목 중, 이 달 표에 아직 없는 것.
+  const knownItems = useMemo(() => {
+    const out = {} as Record<EntryType, string[]>
+    for (const type of TYPES) {
+      const used = ledger.filter((e) => e.type === type).map((e) => e.item)
+      out[type] = [...new Set([...ITEM_PRESETS[type], ...used])]
+    }
+    return out
+  }, [ledger])
+
+  function unusedFor(type: EntryType): string[] {
+    const inGrid = new Set(grid[type].map((r) => r.item.trim()).filter(Boolean))
+    return knownItems[type].filter((i) => !inGrid.has(i))
+  }
 
   function setAmount(type: EntryType, rowId: string, person: Person, value: string) {
     setGrid((g) => ({
@@ -253,6 +275,13 @@ export function MonthlyView() {
               </tr>
             </thead>
             <tbody>
+              {grid[type].length === 0 && (
+                <tr>
+                  <td colSpan={PERSONS.length + 1} className="muted">
+                    {editable ? '아래 + 로 항목을 추가하세요.' : '이 달은 데이터가 없습니다.'}
+                  </td>
+                </tr>
+              )}
               {grid[type].map((row) => (
                 <tr key={row.id}>
                   <td>
@@ -261,7 +290,8 @@ export function MonthlyView() {
                     ) : (
                       <input
                         className="item-input"
-                        placeholder="항목명"
+                        list={`cat-${type}`}
+                        placeholder="항목 선택/입력"
                         value={row.item}
                         onChange={(e) => setName(type, row.id, e.target.value)}
                       />
@@ -298,6 +328,11 @@ export function MonthlyView() {
                     >
                       + 항목 추가
                     </button>
+                    <datalist id={`cat-${type}`}>
+                      {unusedFor(type).map((i) => (
+                        <option key={i} value={i} />
+                      ))}
+                    </datalist>
                   </td>
                 </tr>
               </tfoot>
