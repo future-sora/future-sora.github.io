@@ -575,3 +575,50 @@ textarea {
     padding: 0.4rem 0.35rem;
   }
 }
+
+/* 자산 편집: 종류 셀의 입력 + 순서/삭제 버튼 */
+.kind-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.kind-edit .item-input {
+  flex: 1;
+  min-width: 0;
+}
+.row-btn {
+  flex: none;
+  padding: 2px 7px;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.row-btn:hover {
+  background: var(--surface-2);
+}
+.row-del {
+  color: var(--error);
+}
+.drag-handle {
+  cursor: grab;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+tr[draggable='true'],
+.kind-edit {
+  cursor: default;
+}
+.auto-tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+  vertical-align: middle;
+}

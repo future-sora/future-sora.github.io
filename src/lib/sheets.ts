@@ -102,6 +102,14 @@ export async function updateValues(
   if (!r.ok) throw httpError(`수정(${range})`, r.status)
 }
 
+export async function clearValues(range: string): Promise<void> {
+  const r = await authedFetch(
+    `${BASE}/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}:clear`,
+    { method: 'POST', body: '{}' },
+  )
+  if (!r.ok) throw httpError(`초기화(${range})`, r.status)
+}
+
 export async function batchUpdate(requests: unknown[]): Promise<void> {
   const r = await authedFetch(`${BASE}/${SPREADSHEET_ID}:batchUpdate`, {
     method: 'POST',

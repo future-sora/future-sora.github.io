@@ -17,7 +17,7 @@ import {
   updateLedger,
   deleteLedger,
   addAsset,
-  importAssets,
+  rewriteAssets as rewriteAssetsRepo,
   updateAsset,
   deleteAsset,
   addGoal,
@@ -51,12 +51,8 @@ interface DataValue {
     deletes: string[]
   }) => Promise<void>
   assetOps: Ops<AssetEntry>
-  /** 자산 표 편집 저장: 삭제·수정·추가를 한 번에 적용하고 한 번만 재로드. */
-  applyAssetChanges: (changes: {
-    creates: AssetEntry[]
-    updates: AssetEntry[]
-    deletes: string[]
-  }) => Promise<void>
+  /** 자산 표 편집 저장: 현재 순서대로 자산 탭을 통째로 다시 쓴다(순서·삭제·이름변경 반영). */
+  rewriteAssets: (entries: AssetEntry[]) => Promise<void>
   goalOps: Ops<Goal>
 }
 
@@ -168,12 +164,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     },
     assetOps: makeOps(addAsset, updateAsset, deleteAsset),
-    applyAssetChanges: async ({ creates, updates, deletes }) => {
+    rewriteAssets: async (entries) => {
       setError(null)
       try {
-        for (const id of deletes) await deleteAsset(id)
-        for (const a of updates) await updateAsset(a)
-        if (creates.length > 0) await importAssets(creates)
+        await rewriteAssetsRepo(entries)
         await reload()
       } catch (e) {
         setError(errMsg(e))

@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useData } from '../data/DataContext'
 import { PERSONS, type Person } from '../config'
-import type { AssetEntry, Goal } from '../domain/types'
-import { totalAssets, goalProgress } from '../domain/aggregate'
-import { kindSuggestions, ASSET_KIND_PRESETS } from '../domain/categories'
+import type { AssetEntry, Goal, LedgerEntry } from '../domain/types'
+import { goalProgress, summarizeMonth, listMonths } from '../domain/aggregate'
+import { kindSuggestions } from '../domain/categories'
 import { newId, currentMonth, fmtMoney } from '../lib/util'
+import { useRowDnD } from '../lib/useRowDnD'
 
 interface AssetRow {
   id: string // React key. 기존 종류는 `k:kind`, 추가 행은 uuid.
-  kind: string // 자산 종류(추가 행만 편집 가능)
-  fixed: boolean // 기존 종류면 이름 고정(라벨)
+  kind: string // 자산 종류(편집모드에서 변경 가능)
   amounts: Record<Person, string> // 사람별 입력 문자열(만원)
+  derived?: boolean // 파생 행(ISA 원금,저축): ledger에서 자동 계산, 편집 불가
 }
 
 interface GoalForm {
@@ -20,19 +21,36 @@ interface GoalForm {
   targetDate: string
 }
 
+const ISA_KIND = 'ISA (원금,저축)'
+const ISA_START = '2025-08' // 이 달부터의 누적 저축가능액을 ISA(원금,저축)으로 본다
+
+/** 2025-08 이후 각 사람의 누적 저축가능액(소득−소비). ISA(원금,저축) 자동값. */
+function isaSavings(ledger: LedgerEntry[]): Record<Person, number> {
+  const out = Object.fromEntries(PERSONS.map((p) => [p, 0])) as Record<Person, number>
+  for (const m of listMonths(ledger)) {
+    if (m < ISA_START) continue
+    const s = summarizeMonth(ledger, m)
+    // 저축가능액이 음수인 달은 0으로 본다(그 달은 저축 안 한 것).
+    for (const p of PERSONS) out[p] += Math.max(0, s.byPerson[p].savable)
+  }
+  return out
+}
+
 function sumAsset(assets: AssetEntry[], kind: string, person: Person): number {
   return assets
     .filter((a) => a.kind === kind && a.person === person)
     .reduce((s, a) => s + a.amount, 0)
 }
 
-/** 자산을 종류(행)×사람(열) 매트릭스 행으로 구성. 프리셋 순서 우선. */
+/**
+ * 자산을 종류(행)×사람(열) 매트릭스 행으로 구성.
+ * 시트 행 순서를 그대로 표시 순서로 쓴다(저장 시 현재 순서대로 재기록되므로 유지됨).
+ */
 function buildAssetRows(assets: AssetEntry[]): AssetRow[] {
-  const kinds = [...new Set(assets.map((a) => a.kind))]
-  const rows: AssetRow[] = kinds.map((kind) => ({
+  const kinds = [...new Set(assets.map((a) => a.kind))].filter((k) => k !== ISA_KIND)
+  return kinds.map((kind) => ({
     id: `k:${kind}`,
     kind,
-    fixed: true,
     amounts: Object.fromEntries(
       PERSONS.map((p) => {
         const v = sumAsset(assets, kind, p)
@@ -40,52 +58,78 @@ function buildAssetRows(assets: AssetEntry[]): AssetRow[] {
       }),
     ) as Record<Person, string>,
   }))
-  rows.sort((a, b) => {
-    const ia = ASSET_KIND_PRESETS.indexOf(a.kind)
-    const ib = ASSET_KIND_PRESETS.indexOf(b.kind)
-    return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib)
-  })
-  return rows
 }
 
 function emptyAssetRow(): AssetRow {
   return {
     id: newId(),
     kind: '',
-    fixed: false,
     amounts: Object.fromEntries(PERSONS.map((p) => [p, ''])) as Record<Person, string>,
   }
 }
 
+/** 파생 ISA 행(맨 위·편집 불가) + 시트 자산 행(시트 순서). */
+function buildAllRows(assets: AssetEntry[], isa: Record<Person, number>): AssetRow[] {
+  const derived: AssetRow = {
+    id: 'isa-derived',
+    kind: ISA_KIND,
+    derived: true,
+    amounts: Object.fromEntries(PERSONS.map((p) => [p, fmtMoney(isa[p])])) as Record<
+      Person,
+      string
+    >,
+  }
+  return [derived, ...buildAssetRows(assets)]
+}
+
 export function AssetsGoals() {
-  const { assets, goals, applyAssetChanges, goalOps } = useData()
-  const total = useMemo(() => totalAssets(assets), [assets])
+  const { assets, goals, ledger, rewriteAssets, goalOps } = useData()
   const kinds = useMemo(() => kindSuggestions(assets), [assets])
+  const isa = useMemo(() => isaSavings(ledger), [ledger])
+  // 합계·총액은 파생 ISA를 포함(시트에 남은 ISA(원금,저축) 수동값은 제외).
   const byPerson = useMemo(
     () =>
       Object.fromEntries(
-        PERSONS.map((p) => [p, assets.filter((a) => a.person === p).reduce((s, a) => s + a.amount, 0)]),
+        PERSONS.map((p) => [
+          p,
+          assets
+            .filter((a) => a.person === p && a.kind !== ISA_KIND)
+            .reduce((s, a) => s + a.amount, 0) + isa[p],
+        ]),
       ) as Record<Person, number>,
-    [assets],
+    [assets, isa],
   )
+  const total = useMemo(() => PERSONS.reduce((s, p) => s + byPerson[p], 0), [byPerson])
 
-  const [rows, setRows] = useState<AssetRow[]>(() => buildAssetRows(assets))
+  const [rows, setRows] = useState<AssetRow[]>(() => buildAllRows(assets, isa))
   const [editing, setEditing] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [aerr, setAerr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  // 드래그로 행 순서 변경(파생 ISA 행은 이동·교차 금지).
+  const dnd = useRowDnD<number>((from, to) => {
+    setRows((rs) => {
+      if (rs[from]?.derived || rs[to]?.derived) return rs
+      const next = [...rs]
+      const [m] = next.splice(from, 1)
+      next.splice(to, 0, m)
+      return next
+    })
+    setDirty(true)
+  })
+
   // assets 변화 시 표 재구성(저장 후 재로드 포함). 편집 중 셀 변경은 setRows로만.
   useEffect(() => {
-    setRows(buildAssetRows(assets))
+    setRows(buildAllRows(assets, isa))
     setDirty(false)
     setAerr(null)
-  }, [assets])
+  }, [assets, isa])
 
   // 종류 추가 후보: 프리셋 + 기존 종류 중, 표에 아직 없는 것.
   function unusedKinds(): string[] {
     const inGrid = new Set(rows.map((r) => r.kind.trim()).filter(Boolean))
-    return kinds.filter((k) => !inGrid.has(k))
+    return kinds.filter((k) => !inGrid.has(k) && k !== ISA_KIND)
   }
 
   function setAmount(rowId: string, person: Person, value: string) {
@@ -102,30 +146,27 @@ export function AssetsGoals() {
     setRows((rs) => [...rs, emptyAssetRow()])
     setDirty(true)
   }
+  function removeRow(rowId: string) {
+    setRows((rs) => rs.filter((r) => r.id !== rowId))
+    setDirty(true)
+  }
   function cancel() {
     setEditing(false)
-    setRows(buildAssetRows(assets))
+    setRows(buildAllRows(assets, isa))
     setDirty(false)
     setAerr(null)
   }
 
   async function save() {
-    // 현재 시트 상태를 셀 키(kind|person)별로 모은다(중복은 합산·id 누적).
-    const original = new Map<string, { ids: string[]; amount: number }>()
-    for (const a of assets) {
-      const k = `${a.kind}|${a.person}`
-      const cur = original.get(k) ?? { ids: [], amount: 0 }
-      cur.ids.push(a.id)
-      cur.amount += a.amount
-      original.set(k, cur)
-    }
+    // 현재 표(행 순서 그대로)에서 유효 셀만 모아 자산 전체를 재기록한다.
+    // 변경 없는 셀은 기존 id를 재사용. 순서·삭제·이름변경이 자연히 반영된다.
+    const idByKey = new Map<string, string>()
+    for (const a of assets) idByKey.set(`${a.kind}|${a.person}`, a.id)
 
-    const creates: AssetEntry[] = []
-    const updates: AssetEntry[] = []
-    const deletes: string[] = []
+    const entries: AssetEntry[] = []
     const seen = new Set<string>()
-
     for (const row of rows) {
+      if (row.derived) continue // 파생 ISA는 시트에 저장하지 않음
       const kind = row.kind.trim()
       if (!kind) continue
       for (const p of PERSONS) {
@@ -133,43 +174,20 @@ export function AssetsGoals() {
         if (seen.has(k)) continue // 같은 종류 중복 행이면 첫 행만 반영
         seen.add(k)
         const raw = row.amounts[p].trim()
+        if (raw === '') continue
         const v = Number(raw)
-        if (raw !== '' && (!Number.isFinite(v) || v <= 0)) {
+        if (!Number.isFinite(v) || v <= 0) {
           setAerr(`금액은 0보다 큰 숫자여야 합니다. (${kind} · ${p})`)
           return
         }
-        const orig = original.get(k)
-        if (raw !== '' && v > 0) {
-          if (orig) {
-            if (!(orig.ids.length === 1 && orig.amount === v)) {
-              updates.push({ id: orig.ids[0], person: p, kind, amount: v })
-              for (const extra of orig.ids.slice(1)) deletes.push(extra)
-            }
-          } else {
-            creates.push({ id: newId(), person: p, kind, amount: v })
-          }
-        } else if (orig) {
-          for (const id of orig.ids) deletes.push(id)
-        }
+        entries.push({ id: idByKey.get(k) ?? newId(), person: p, kind, amount: v })
       }
-    }
-
-    // 표에서 사라진 셀(행 삭제·종류 변경)은 시트에서 삭제
-    for (const [k, orig] of original) {
-      if (!seen.has(k)) for (const id of orig.ids) deletes.push(id)
-    }
-
-    if (creates.length === 0 && updates.length === 0 && deletes.length === 0) {
-      setDirty(false)
-      setAerr(null)
-      setEditing(false)
-      return
     }
 
     setBusy(true)
     setAerr(null)
     try {
-      await applyAssetChanges({ creates, updates, deletes })
+      await rewriteAssets(entries)
       setEditing(false)
     } catch {
       setAerr('저장에 실패했습니다. 다시 시도하세요.')
@@ -264,24 +282,45 @@ export function AssetsGoals() {
               </td>
             </tr>
           )}
-          {rows.map((row) => (
-            <tr key={row.id}>
+          {rows.map((row, i) => (
+            <tr key={row.id} {...(editing && !row.derived ? dnd.zone(i) : {})}>
               <td>
-                {!editing || row.fixed ? (
-                  row.kind
+                {editing && !row.derived ? (
+                  <span className="kind-edit">
+                    <button
+                      type="button"
+                      className="row-btn drag-handle"
+                      title="드래그로 순서 변경"
+                      {...dnd.handle(i)}
+                    >
+                      ≡
+                    </button>
+                    <input
+                      className="item-input"
+                      list="asset-kinds"
+                      placeholder="종류 선택/입력"
+                      value={row.kind}
+                      onChange={(e) => setKind(row.id, e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="row-btn row-del"
+                      title="삭제"
+                      onClick={() => removeRow(row.id)}
+                    >
+                      ✕
+                    </button>
+                  </span>
                 ) : (
-                  <input
-                    className="item-input"
-                    list="asset-kinds"
-                    placeholder="종류 선택/입력"
-                    value={row.kind}
-                    onChange={(e) => setKind(row.id, e.target.value)}
-                  />
+                  <>
+                    {row.kind}
+                    {row.derived && <span className="auto-tag">자동</span>}
+                  </>
                 )}
               </td>
               {PERSONS.map((p) => (
                 <td key={p} className="num">
-                  {editing ? (
+                  {editing && !row.derived ? (
                     <input
                       type="number"
                       step="0.1"

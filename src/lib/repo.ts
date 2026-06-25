@@ -4,6 +4,7 @@ import {
   appendRow,
   appendRows,
   updateValues,
+  clearValues,
   batchUpdate,
 } from './sheets'
 import {
@@ -113,9 +114,10 @@ export async function deleteLedger(id: string): Promise<void> {
 export async function addAsset(a: AssetEntry): Promise<void> {
   await appendRow(TABS.assets.range, assetToRow(a))
 }
-export async function importAssets(entries: AssetEntry[]): Promise<void> {
-  if (entries.length === 0) return
-  await appendRows(TABS.assets.range, entries.map(assetToRow))
+/** 자산 데이터 행을 통째로 다시 쓴다(헤더 유지). 행 순서 = entries 순서. */
+export async function rewriteAssets(entries: AssetEntry[]): Promise<void> {
+  await clearValues('assets!A2:D')
+  if (entries.length > 0) await appendRows(TABS.assets.range, entries.map(assetToRow))
 }
 export async function updateAsset(a: AssetEntry): Promise<void> {
   const n = await findRowNumber(TABS.assets.range, a.id)
