@@ -122,6 +122,11 @@ export function MonthlyView() {
   const [busy, setBusy] = useState(false)
 
   const latestMonth = useMemo(() => listMonths(ledger)[0] ?? null, [ledger])
+  // 드롭다운 후보: 데이터 있는 달 + 현재 선택 달, 최신순(최근이 맨 위).
+  const monthOptions = useMemo(
+    () => [...new Set([...listMonths(ledger), month])].sort().reverse(),
+    [ledger, month],
+  )
   const hasData = useMemo(() => ledger.some((e) => e.month === month), [ledger, month])
   const inputs = editing || entering // 셀 편집 가능 상태(편집/신규)
   const showTables = hasData || entering // 표 표시(아니면 "데이터 없음" 메시지)
@@ -280,13 +285,30 @@ export function MonthlyView() {
   return (
     <section className="monthly">
       <div className="monthly-top">
-        <input
-          className="month-picker"
-          type="month"
-          aria-label="월 선택"
-          value={month}
-          onChange={(e) => selectMonth(e.target.value)}
-        />
+        <span className="month-select-group">
+          <select
+            className="month-picker"
+            aria-label="월 선택"
+            value={month}
+            onChange={(e) => selectMonth(e.target.value)}
+          >
+            {monthOptions.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+          {!inputs && (
+            <button
+              type="button"
+              className="next-month"
+              onClick={startEntry}
+              title="최신 달 기준으로 새 달을 입력"
+            >
+              추가
+            </button>
+          )}
+        </span>
         <span className="monthly-actions">
           {inputs ? (
             <>
@@ -308,25 +330,15 @@ export function MonthlyView() {
               </button>
             </>
           ) : (
-            <>
-              {hasData && (
-                <button
-                  type="button"
-                  className="next-month"
-                  onClick={() => setEditing(true)}
-                >
-                  편집
-                </button>
-              )}
+            hasData && (
               <button
                 type="button"
                 className="next-month"
-                onClick={startEntry}
-                title="최신 달 기준으로 새 달을 입력"
+                onClick={() => setEditing(true)}
               >
-                급여 입력
+                편집
               </button>
-            </>
+            )
           )}
         </span>
       </div>
