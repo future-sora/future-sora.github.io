@@ -25,6 +25,7 @@ dist-ssr
 
 # Claude Code (로컬 에이전트 설정/세션)
 .claude/
+CLAUDE.md
 
 # 환경변수 (로컬 비밀)
 .env
