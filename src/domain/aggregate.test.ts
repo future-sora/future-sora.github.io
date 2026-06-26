@@ -82,10 +82,10 @@ describe('listMonths / savingsTrend', () => {
     expect(listMonths(entries)).toEqual(['2026-05', '2026-04'])
   })
 
-  it('savingsTrend는 오름차순 월별 저축가능액', () => {
+  it('savingsTrend는 오름차순 월별 최종저축·소득·저축률', () => {
     expect(savingsTrend(entries)).toEqual([
-      { month: '2026-04', savable: 70 },
-      { month: '2026-05', savable: 200 },
+      { month: '2026-04', savable: 70, income: 100, rate: 0.7 },
+      { month: '2026-05', savable: 200, income: 200, rate: 1 },
     ])
   })
 })

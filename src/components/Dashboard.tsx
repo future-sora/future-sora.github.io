@@ -8,6 +8,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from 'recharts'
 import { useData } from '../data/DataContext'
@@ -25,6 +26,7 @@ export function Dashboard() {
   const { ledger } = useData()
   const months = useMemo(() => listMonths(ledger), [ledger])
   const [month, setMonth] = useState(() => months[0] ?? currentMonth())
+  const [metric, setMetric] = useState<'amount' | 'rate'>('amount')
 
   useEffect(() => {
     if (months.length > 0 && !months.includes(month)) setMonth(months[0])
@@ -45,22 +47,70 @@ export function Dashboard() {
 
   return (
     <section>
-      <h3>월별 최종저축 추이 (만원)</h3>
+      <div className="chart-head">
+        <h3>
+          {metric === 'amount'
+            ? '월별 최종저축·소득 추이 (만원)'
+            : '월별 저축률 추이 (%)'}
+        </h3>
+        <div className="metric-toggle" role="group" aria-label="지표 선택">
+          <button
+            type="button"
+            className={metric === 'amount' ? 'active' : ''}
+            onClick={() => setMetric('amount')}
+          >
+            금액
+          </button>
+          <button
+            type="button"
+            className={metric === 'rate' ? 'active' : ''}
+            onClick={() => setMetric('rate')}
+          >
+            저축률
+          </button>
+        </div>
+      </div>
       <ResponsiveContainer width="100%" height={240}>
-        <LineChart data={trend} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey="month" fontSize={12} />
-          <YAxis fontSize={12} />
-          <Tooltip />
-          <Line
-            type="monotone"
-            dataKey="savable"
-            name="최종저축"
-            stroke="#7c3aed"
-            strokeWidth={2}
-            dot={{ r: 3 }}
-          />
-        </LineChart>
+        {metric === 'amount' ? (
+          <LineChart data={trend} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="month" fontSize={12} />
+            <YAxis fontSize={12} />
+            <Tooltip />
+            <Legend />
+            <Line
+              type="monotone"
+              dataKey="savable"
+              name="최종저축"
+              stroke="#243b53"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="income"
+              name="소득"
+              stroke="#0d9488"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+            />
+          </LineChart>
+        ) : (
+          <LineChart data={trend} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+            <XAxis dataKey="month" fontSize={12} />
+            <YAxis fontSize={12} tickFormatter={(v) => `${Math.round(Number(v) * 100)}%`} />
+            <Tooltip formatter={(v) => `${(Number(v) * 100).toFixed(1)}%`} />
+            <Line
+              type="monotone"
+              dataKey="rate"
+              name="저축률"
+              stroke="#243b53"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+            />
+          </LineChart>
+        )}
       </ResponsiveContainer>
 
       <div className="dash-controls">
@@ -81,7 +131,7 @@ export function Dashboard() {
             <XAxis dataKey="item" fontSize={12} interval={0} angle={-30} textAnchor="end" height={60} />
             <YAxis fontSize={12} />
             <Tooltip />
-            <Bar dataKey="amount" name="지출" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="amount" name="지출" fill="#243b53" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}
