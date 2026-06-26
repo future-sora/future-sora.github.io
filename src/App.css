@@ -622,3 +622,50 @@ tr[draggable='true'],
   color: var(--accent-strong);
   vertical-align: middle;
 }
+
+.next-month.danger {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+/* 저장 중 전체 화면 로딩 오버레이 */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(43, 42, 46, 0.45);
+  backdrop-filter: blur(2px);
+}
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 2rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+}
+.loading-img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  animation: bob 0.9s ease-in-out infinite;
+}
+.loading-box p {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-h);
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(3deg);
+  }
+}

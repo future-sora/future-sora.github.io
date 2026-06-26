@@ -7,6 +7,7 @@ import { ITEM_PRESETS } from '../domain/categories'
 import { newId, currentMonth, fmtMoney } from '../lib/util'
 import { MonthDropdown } from './MonthDropdown'
 import { useRowDnD } from '../lib/useRowDnD'
+import { LoadingOverlay } from './LoadingOverlay'
 
 const TYPES: EntryType[] = ['소득', '소비']
 
@@ -114,6 +115,7 @@ export function MonthlyView() {
   const [initialized, setInitialized] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [busyLabel, setBusyLabel] = useState('저장 중…')
 
   // 드래그로 같은 표(소득/소비) 안에서 행 순서 변경.
   const dnd = useRowDnD<{ type: EntryType; i: number }>((from, to) => {
@@ -191,6 +193,29 @@ export function MonthlyView() {
     setEntering(false)
   }
 
+  // 이 달 전체 삭제(되돌릴 수 없음). 삭제 후 남은 최신 달로 이동.
+  async function deleteMonth() {
+    const ids = ledger.filter((e) => e.month === month).map((e) => e.id)
+    if (ids.length === 0) return
+    if (!window.confirm(`${month} 데이터를 모두 삭제할까요? 되돌릴 수 없습니다.`)) return
+    const others = [...new Set(ledger.filter((e) => e.month !== month).map((e) => e.month))]
+      .sort()
+      .reverse()
+    setBusy(true)
+    setBusyLabel('삭제 중…')
+    setFormError(null)
+    try {
+      await applyLedgerChanges({ creates: [], updates: [], deletes: ids })
+      setEditing(false)
+      setEntering(false)
+      setMonth(others[0] ?? currentMonth())
+    } catch {
+      setFormError('삭제에 실패했습니다. 다시 시도하세요.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function setAmount(type: EntryType, rowId: string, person: Person, value: string) {
     setGrid((g) => ({
       ...g,
@@ -255,6 +280,7 @@ export function MonthlyView() {
     }
 
     setBusy(true)
+    setBusyLabel('저장 중…')
     setFormError(null)
     try {
       await applyLedgerChanges({ creates, updates: [], deletes })
@@ -269,6 +295,7 @@ export function MonthlyView() {
 
   return (
     <section className="monthly">
+      <LoadingOverlay show={busy} label={busyLabel} />
       <div className="monthly-top">
         <span className="month-select-group">
           <MonthDropdown value={month} options={monthOptions} onChange={selectMonth} />
@@ -305,13 +332,22 @@ export function MonthlyView() {
             </>
           ) : (
             hasData && (
-              <button
-                type="button"
-                className="next-month"
-                onClick={() => setEditing(true)}
-              >
-                편집
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="next-month"
+                  onClick={() => setEditing(true)}
+                >
+                  편집
+                </button>
+                <button
+                  type="button"
+                  className="next-month danger"
+                  onClick={deleteMonth}
+                >
+                  삭제
+                </button>
+              </>
             )
           )}
         </span>

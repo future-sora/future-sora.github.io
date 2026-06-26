@@ -6,6 +6,7 @@ import { goalProgress, summarizeMonth, listMonths } from '../domain/aggregate'
 import { kindSuggestions } from '../domain/categories'
 import { newId, currentMonth, fmtMoney } from '../lib/util'
 import { useRowDnD } from '../lib/useRowDnD'
+import { LoadingOverlay } from './LoadingOverlay'
 
 interface AssetRow {
   id: string // React key. 기존 종류는 `k:kind`, 추가 행은 uuid.
@@ -237,6 +238,7 @@ export function AssetsGoals() {
 
   return (
     <section>
+      <LoadingOverlay show={busy || gbusy} />
       <div className="monthly-top">
         <h3>자산 (총 {fmtMoney(total)} 만원)</h3>
         <span className="monthly-actions">
