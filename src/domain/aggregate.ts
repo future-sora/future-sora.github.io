@@ -33,13 +33,27 @@ export function summarizeMonth(
     else s.expense += e.amount
   }
 
+  // 저축가능액 = 본인 소득−소비. 단 한 사람이 적자(소득<소비)면 그 적자를
+  // 흑자인 사람의 저축가능에서 차감한다(소득 없는 사람의 소비를 상대가 부담).
+  // 가구 전체가 적자면 모두 0.
   const total = emptyPersonSummary()
+  const net = {} as Record<Person, number>
+  let deficit = 0 // 적자 사람들의 부족분 합(양수)
+  let posSum = 0 // 흑자 사람들의 net 합
   for (const p of PERSONS) {
-    byPerson[p].savable = byPerson[p].income - byPerson[p].expense
+    net[p] = byPerson[p].income - byPerson[p].expense
+    if (net[p] < 0) deficit += -net[p]
+    else posSum += net[p]
     total.income += byPerson[p].income
     total.expense += byPerson[p].expense
   }
-  total.savable = total.income - total.expense
+  for (const p of PERSONS) {
+    const n = net[p]
+    // 흑자 사람이 자기 비중만큼 적자를 흡수.
+    byPerson[p].savable =
+      n <= 0 || posSum === 0 ? 0 : Math.max(0, n - (deficit * n) / posSum)
+    total.savable += byPerson[p].savable
+  }
 
   return { month, byPerson, total }
 }

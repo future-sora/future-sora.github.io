@@ -43,6 +43,18 @@ describe('summarizeMonth', () => {
     expect(s.byPerson['소라삐']).toEqual({ income: 0, expense: 0, savable: 0 })
   })
 
+  it('한 사람이 적자면 흑자인 사람이 그 적자를 떠안는다', () => {
+    const entries = [
+      e('소라삐', '소비', '월세', 100), // 소득 0 → 적자 -100
+      e('민달팽이', '소득', '월급', 300),
+      e('민달팽이', '소비', '용돈', 50), // net +250
+    ]
+    const s = summarizeMonth(entries, '2026-06')
+    expect(s.byPerson['소라삐'].savable).toBe(0)
+    expect(s.byPerson['민달팽이'].savable).toBe(150) // 250 − 100(소라 적자)
+    expect(s.total.savable).toBe(150)
+  })
+
   it('다른 달 항목은 제외한다', () => {
     const s = summarizeMonth([e('소라삐', '소득', '월급', 490, '2026-05')], '2026-06')
     expect(s.total.income).toBe(0)
