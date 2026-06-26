@@ -69,7 +69,7 @@ export async function appendRow(
   const r = await authedFetch(
     `${BASE}/${SPREADSHEET_ID}/values/${encodeURIComponent(
       range,
-    )}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    )}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     { method: 'POST', body: JSON.stringify({ values: [values] }) },
   )
   if (!r.ok) throw httpError(`추가(${range})`, r.status)
@@ -83,7 +83,7 @@ export async function appendRows(
   const r = await authedFetch(
     `${BASE}/${SPREADSHEET_ID}/values/${encodeURIComponent(
       range,
-    )}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    )}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     { method: 'POST', body: JSON.stringify({ values: rows }) },
   )
   if (!r.ok) throw httpError(`일괄추가(${range})`, r.status)
@@ -96,7 +96,7 @@ export async function updateValues(
   const r = await authedFetch(
     `${BASE}/${SPREADSHEET_ID}/values/${encodeURIComponent(
       range,
-    )}?valueInputOption=USER_ENTERED`,
+    )}?valueInputOption=RAW`,
     { method: 'PUT', body: JSON.stringify({ values }) },
   )
   if (!r.ok) throw httpError(`수정(${range})`, r.status)
