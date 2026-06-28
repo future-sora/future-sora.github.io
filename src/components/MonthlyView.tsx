@@ -374,12 +374,16 @@ export function MonthlyView() {
                         {p}
                       </th>
                     ))}
+                    {inputs && <th className="num"></th>}
                   </tr>
                 </thead>
                 <tbody>
                   {grid[type].length === 0 && (
                     <tr>
-                      <td colSpan={PERSONS.length + 1} className="muted">
+                      <td
+                        colSpan={PERSONS.length + 1 + (inputs ? 1 : 0)}
+                        className="muted"
+                      >
                         {inputs ? '아래 + 로 항목을 추가하세요.' : '항목 없음'}
                       </td>
                     </tr>
@@ -404,14 +408,6 @@ export function MonthlyView() {
                               value={row.item}
                               onChange={(e) => setName(type, row.id, e.target.value)}
                             />
-                            <button
-                              type="button"
-                              className="row-btn row-del"
-                              title="삭제"
-                              onClick={() => removeRow(type, row.id)}
-                            >
-                              ✕
-                            </button>
                           </span>
                         ) : (
                           row.item
@@ -434,13 +430,25 @@ export function MonthlyView() {
                           )}
                         </td>
                       ))}
+                      {inputs && (
+                        <td className="num">
+                          <button
+                            type="button"
+                            className="row-btn row-del"
+                            title="삭제"
+                            onClick={() => removeRow(type, row.id)}
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
                 {inputs && (
                   <tfoot>
                     <tr>
-                      <td colSpan={PERSONS.length + 1}>
+                      <td colSpan={PERSONS.length + 2}>
                         <button
                           type="button"
                           className="add-row"

@@ -1,9 +1,16 @@
 import { PERSONS, type Person } from '../config'
-import type { LedgerEntry, AssetEntry, Goal, EntryType } from '../domain/types'
+import type {
+  LedgerEntry,
+  AssetEntry,
+  Goal,
+  RateEntry,
+  EntryType,
+} from '../domain/types'
 
 export const LEDGER_HEADER = ['id', 'month', 'person', 'type', 'item', 'amount']
 export const ASSETS_HEADER = ['id', 'person', 'kind', 'amount']
-export const GOALS_HEADER = ['id', 'name', 'target_amount', 'target_date']
+export const GOALS_HEADER = ['id', 'kind', 'target_amount', 'target_date']
+export const RATES_HEADER = ['person', 'rate']
 
 const isPerson = (v: string): v is Person =>
   (PERSONS as readonly string[]).includes(v)
@@ -40,15 +47,28 @@ export function rowToAsset(row: string[]): AssetEntry | null {
 
 // --- goals ---
 export function goalToRow(g: Goal): (string | number)[] {
-  return [g.id, g.name, g.targetAmount, g.targetDate]
+  return [g.id, g.kind, g.targetAmount, g.targetDate]
 }
 
 export function rowToGoal(row: string[]): Goal | null {
-  const [id, name, targetRaw, targetDate] = row
-  if (!id || !name || !isMonth(targetDate)) return null
+  const [id, kind, targetRaw, targetDate] = row
+  if (!id || !kind || !isMonth(targetDate)) return null
   const targetAmount = Number(targetRaw)
   if (!Number.isFinite(targetAmount)) return null
-  return { id, name, targetAmount, targetDate }
+  return { id, kind, targetAmount, targetDate }
+}
+
+// --- rates (사람별 ISA 수익률 %) ---
+export function rateToRow(r: RateEntry): (string | number)[] {
+  return [r.person, r.rate]
+}
+
+export function rowToRate(row: string[]): RateEntry | null {
+  const [person, rateRaw] = row
+  if (!isPerson(person)) return null
+  const rate = Number(rateRaw)
+  if (!Number.isFinite(rate)) return null
+  return { person, rate }
 }
 
 /** 헤더 행을 제외하고 유효한 행만 파싱. (헤더는 첫 행으로 가정) */

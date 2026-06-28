@@ -7,10 +7,11 @@ import {
   expenseByItem,
   totalAssets,
   goalProgress,
+  isaValuation,
   previousMonthWithData,
   carryForward,
 } from './aggregate'
-import type { LedgerEntry, AssetEntry, Goal } from './types'
+import type { LedgerEntry, AssetEntry, Goal, RateEntry } from './types'
 import type { Person } from '../config'
 
 let seq = 0
@@ -128,13 +129,41 @@ describe('totalAssets / goalProgress', () => {
   })
 
   it('목표 진행률 = 현재 / 목표', () => {
-    const goal: Goal = { id: 'g1', name: '2030 3억', targetAmount: 30000, targetDate: '2030-10' }
+    const goal: Goal = { id: 'g1', kind: 'ISA (원금,저축)', targetAmount: 30000, targetDate: '2030-10' }
     expect(goalProgress(goal, 15000)).toBeCloseTo(0.5)
   })
 
   it('목표액 0이면 0', () => {
-    const goal: Goal = { id: 'g0', name: 'x', targetAmount: 0, targetDate: '2030-10' }
+    const goal: Goal = { id: 'g0', kind: 'ISA', targetAmount: 0, targetDate: '2030-10' }
     expect(goalProgress(goal, 100)).toBe(0)
+  })
+})
+
+describe('isaValuation', () => {
+  const principal: Record<Person, number> = { 소라삐: 1000, 민달팽이: 2000 }
+
+  it('사람별 수익률을 적용한 평가금액 합', () => {
+    const rates: RateEntry[] = [
+      { person: '소라삐', rate: 10 },
+      { person: '민달팽이', rate: 5 },
+    ]
+    // 1000*1.10 + 2000*1.05 = 1100 + 2100 = 3200
+    expect(isaValuation(principal, rates)).toBeCloseTo(3200)
+  })
+
+  it('수익률 미지정인 사람은 0%(원금 그대로)', () => {
+    const rates: RateEntry[] = [{ person: '소라삐', rate: 20 }]
+    // 1000*1.20 + 2000*1.00 = 1200 + 2000 = 3200
+    expect(isaValuation(principal, rates)).toBeCloseTo(3200)
+  })
+
+  it('손실(음수 수익률)이면 평가금액이 원금보다 작다', () => {
+    const rates: RateEntry[] = [
+      { person: '소라삐', rate: -10 },
+      { person: '민달팽이', rate: -10 },
+    ]
+    // (1000+2000)*0.9 = 2700
+    expect(isaValuation(principal, rates)).toBeCloseTo(2700)
   })
 })
 

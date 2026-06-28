@@ -1,5 +1,5 @@
 import { PERSONS, type Person } from '../config'
-import type { LedgerEntry, AssetEntry, Goal } from './types'
+import type { LedgerEntry, AssetEntry, Goal, RateEntry } from './types'
 
 export interface PersonSummary {
   income: number
@@ -107,9 +107,24 @@ export function totalAssets(assets: AssetEntry[]): number {
   return assets.reduce((sum, a) => sum + a.amount, 0)
 }
 
-/** 목표 진행률 = 현재 자산총액 / 목표액 (0~1+, 목표 0이면 0). */
-export function goalProgress(goal: Goal, currentTotal: number): number {
-  return goal.targetAmount === 0 ? 0 : currentTotal / goal.targetAmount
+/** 목표 진행률 = 현재값 / 목표액 (0~1+, 목표 0이면 0). */
+export function goalProgress(goal: Goal, current: number): number {
+  return goal.targetAmount === 0 ? 0 : current / goal.targetAmount
+}
+
+/**
+ * 사람별 ISA 원금에 각자의 수익률(%)을 적용한 평가금액 합(만원).
+ * 수익률 미지정인 사람은 0%(원금 그대로). 손실이면 음수 수익률.
+ */
+export function isaValuation(
+  principalByPerson: Record<Person, number>,
+  rates: RateEntry[],
+): number {
+  const rateBy = new Map(rates.map((r) => [r.person, r.rate]))
+  return PERSONS.reduce(
+    (s, p) => s + principalByPerson[p] * (1 + (rateBy.get(p) ?? 0) / 100),
+    0,
+  )
 }
 
 /** targetMonth 직전에 데이터가 있는 가장 가까운 월. 없으면 null. */

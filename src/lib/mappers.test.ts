@@ -6,10 +6,12 @@ import {
   rowToAsset,
   goalToRow,
   rowToGoal,
+  rateToRow,
+  rowToRate,
   parseRows,
   LEDGER_HEADER,
 } from './mappers'
-import type { LedgerEntry, AssetEntry, Goal } from '../domain/types'
+import type { LedgerEntry, AssetEntry, Goal, RateEntry } from '../domain/types'
 
 describe('ledger round-trip', () => {
   it('객체→행→객체가 보존된다', () => {
@@ -57,11 +59,18 @@ describe('asset / goal round-trip', () => {
     expect(rowToAsset((assetToRow(a) as string[]).map(String))).toEqual(a)
   })
   it('goal 보존', () => {
-    const g: Goal = { id: 'g1', name: '2030 3억', targetAmount: 30000, targetDate: '2030-10' }
+    const g: Goal = { id: 'g1', kind: 'ISA (원금,저축)', targetAmount: 30000, targetDate: '2030-10' }
     expect(rowToGoal((goalToRow(g) as string[]).map(String))).toEqual(g)
   })
   it('goal 잘못된 날짜는 null', () => {
-    expect(rowToGoal(['g1', '목표', '30000', '2030'])).toBeNull()
+    expect(rowToGoal(['g1', 'ISA', '30000', '2030'])).toBeNull()
+  })
+  it('rate 보존(음수 수익률 포함)', () => {
+    const r: RateEntry = { person: '민달팽이', rate: -3.5 }
+    expect(rowToRate((rateToRow(r) as string[]).map(String))).toEqual(r)
+  })
+  it('rate 알 수 없는 person은 null', () => {
+    expect(rowToRate(['홍길동', '10'])).toBeNull()
   })
 })
 

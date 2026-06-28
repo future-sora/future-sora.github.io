@@ -11,20 +11,24 @@ import {
   LEDGER_HEADER,
   ASSETS_HEADER,
   GOALS_HEADER,
+  RATES_HEADER,
   ledgerToRow,
   rowToLedger,
   assetToRow,
   rowToAsset,
   goalToRow,
   rowToGoal,
+  rateToRow,
+  rowToRate,
   parseRows,
 } from './mappers'
-import type { LedgerEntry, AssetEntry, Goal } from '../domain/types'
+import type { LedgerEntry, AssetEntry, Goal, RateEntry } from '../domain/types'
 
 const TABS = {
   ledger: { title: 'ledger', header: LEDGER_HEADER, range: 'ledger!A:F' },
   assets: { title: 'assets', header: ASSETS_HEADER, range: 'assets!A:D' },
   goals: { title: 'goals', header: GOALS_HEADER, range: 'goals!A:D' },
+  rates: { title: 'rates', header: RATES_HEADER, range: 'rates!A:B' },
 } as const
 
 const sheetIdCache = new Map<string, number>()
@@ -63,6 +67,9 @@ export async function loadAssets(): Promise<AssetEntry[]> {
 }
 export async function loadGoals(): Promise<Goal[]> {
   return parseRows(await getValues(TABS.goals.range), rowToGoal)
+}
+export async function loadRates(): Promise<RateEntry[]> {
+  return parseRows(await getValues(TABS.rates.range), rowToRate)
 }
 
 // --- helpers ---
@@ -139,4 +146,16 @@ export async function updateGoal(g: Goal): Promise<void> {
 }
 export async function deleteGoal(id: string): Promise<void> {
   await deleteRow(TABS.goals.title, TABS.goals.range, id)
+}
+/** 목표 데이터 행을 통째로 다시 쓴다(헤더 유지). 행 순서 = entries 순서. */
+export async function rewriteGoals(entries: Goal[]): Promise<void> {
+  await clearValues('goals!A2:D')
+  if (entries.length > 0) await appendRows(TABS.goals.range, entries.map(goalToRow))
+}
+
+// --- rates ---
+/** 사람별 ISA 수익률을 통째로 다시 쓴다(헤더 유지). */
+export async function saveRates(entries: RateEntry[]): Promise<void> {
+  await clearValues('rates!A2:B')
+  if (entries.length > 0) await appendRows(TABS.rates.range, entries.map(rateToRow))
 }

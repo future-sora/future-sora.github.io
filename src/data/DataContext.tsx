@@ -12,6 +12,7 @@ import {
   loadLedger,
   loadAssets,
   loadGoals,
+  loadRates,
   addLedger,
   importLedger,
   updateLedger,
@@ -23,9 +24,11 @@ import {
   addGoal,
   updateGoal,
   deleteGoal,
+  rewriteGoals as rewriteGoalsRepo,
+  saveRates as saveRatesRepo,
 } from '../lib/repo'
 import { errMsg } from '../lib/util'
-import type { LedgerEntry, AssetEntry, Goal } from '../domain/types'
+import type { LedgerEntry, AssetEntry, Goal, RateEntry } from '../domain/types'
 
 interface Ops<T> {
   add: (x: T) => Promise<void>
@@ -39,6 +42,7 @@ interface DataValue {
   ledger: LedgerEntry[]
   assets: AssetEntry[]
   goals: Goal[]
+  rates: RateEntry[]
   reload: () => Promise<void>
   clearError: () => void
   ledgerOps: Ops<LedgerEntry>
@@ -54,6 +58,10 @@ interface DataValue {
   /** 자산 표 편집 저장: 현재 순서대로 자산 탭을 통째로 다시 쓴다(순서·삭제·이름변경 반영). */
   rewriteAssets: (entries: AssetEntry[]) => Promise<void>
   goalOps: Ops<Goal>
+  /** 목표 표 편집 저장: 현재 순서대로 목표 탭을 통째로 다시 쓴다. */
+  rewriteGoals: (entries: Goal[]) => Promise<void>
+  /** 사람별 ISA 수익률(%) 저장. */
+  saveRates: (entries: RateEntry[]) => Promise<void>
 }
 
 const DataCtx = createContext<DataValue | null>(null)
@@ -65,15 +73,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
   const [assets, setAssets] = useState<AssetEntry[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
+  const [rates, setRates] = useState<RateEntry[]>([])
 
   const reload = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [l, a, g] = await Promise.all([loadLedger(), loadAssets(), loadGoals()])
+      const [l, a, g, r] = await Promise.all([
+        loadLedger(),
+        loadAssets(),
+        loadGoals(),
+        loadRates(),
+      ])
       setLedger(l)
       setAssets(a)
       setGoals(g)
+      setRates(r)
     } catch (e) {
       setError(errMsg(e))
     } finally {
@@ -86,6 +101,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setLedger([])
       setAssets([])
       setGoals([])
+      setRates([])
       return
     }
     let cancelled = false
@@ -137,6 +153,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ledger,
     assets,
     goals,
+    rates,
     reload,
     clearError: () => setError(null),
     ledgerOps: makeOps(addLedger, updateLedger, deleteLedger),
@@ -175,6 +192,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
     },
     goalOps: makeOps(addGoal, updateGoal, deleteGoal),
+    rewriteGoals: async (entries) => {
+      setError(null)
+      try {
+        await rewriteGoalsRepo(entries)
+        await reload()
+      } catch (e) {
+        setError(errMsg(e))
+        throw e
+      }
+    },
+    saveRates: async (entries) => {
+      setError(null)
+      try {
+        await saveRatesRepo(entries)
+        await reload()
+      } catch (e) {
+        setError(errMsg(e))
+        throw e
+      }
+    },
   }
 
   return <DataCtx.Provider value={value}>{children}</DataCtx.Provider>

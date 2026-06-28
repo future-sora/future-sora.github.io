@@ -20,7 +20,12 @@ export interface AssetEntry {
 
 export interface Goal {
   id: string
-  name: string
+  kind: string // 저축 종류(자산 종류 중 선택). 진행률 대상.
   targetAmount: number // 만원
   targetDate: string // YYYY-MM
+}
+
+export interface RateEntry {
+  person: Person
+  rate: number // ISA 평가 수익률(%). 손실이면 음수.
 }
