@@ -46,15 +46,15 @@ export async function ensureTabs(): Promise<void> {
     )
     const meta2 = await getSheetMeta()
     meta2.forEach((m) => sheetIdCache.set(m.title, m.sheetId))
-    for (const t of toCreate) {
-      await updateValues(`${t.title}!A1`, [t.header])
-    }
+    await Promise.all(toCreate.map((t) => updateValues(`${t.title}!A1`, [t.header])))
   } else {
-    // 탭은 있으나 비어 있으면 헤더 보장
-    for (const t of Object.values(TABS)) {
-      const head = await getValues(`${t.title}!A1:1`)
-      if (head.length === 0) await updateValues(`${t.title}!A1`, [t.header])
-    }
+    // 탭은 있으나 비어 있으면 헤더 보장. 탭끼리 독립이라 동시에 확인한다(시작 시 순차 왕복을 줄임).
+    await Promise.all(
+      Object.values(TABS).map(async (t) => {
+        const head = await getValues(`${t.title}!A1:1`)
+        if (head.length === 0) await updateValues(`${t.title}!A1`, [t.header])
+      }),
+    )
   }
 }
 
