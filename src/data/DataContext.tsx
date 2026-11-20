@@ -38,6 +38,8 @@ interface Ops<T> {
 
 interface DataValue {
   loading: boolean
+  /** 첫 로드가 끝났나. false인 동안 빈 배열은 '데이터 없음'이 아니라 '아직 모름'이다. */
+  loaded: boolean
   error: string | null
   ledger: LedgerEntry[]
   assets: AssetEntry[]
@@ -69,6 +71,7 @@ const DataCtx = createContext<DataValue | null>(null)
 export function DataProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ledger, setLedger] = useState<LedgerEntry[]>([])
   const [assets, setAssets] = useState<AssetEntry[]>([])
@@ -89,6 +92,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setAssets(a)
       setGoals(g)
       setRates(r)
+      setLoaded(true)
     } catch (e) {
       setError(errMsg(e))
     } finally {
@@ -149,6 +153,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const value: DataValue = {
     loading,
+    loaded,
     error,
     ledger,
     assets,

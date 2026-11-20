@@ -107,7 +107,8 @@ function shiftMonth(month: string, delta: number): string {
 
 export function MonthlyView() {
   const { ledger, applyLedgerChanges } = useData()
-  const [month, setMonth] = useState(currentMonth())
+  // 첫 화면부터 최근 입력된 달(없으면 이번 달). 첫 로드 뒤에만 마운트되므로 ledger는 이미 채워져 있다.
+  const [month, setMonth] = useState(() => listMonths(ledger)[0] ?? currentMonth())
   const [grid, setGrid] = useState<Grid>(() => buildGrid(ledger, month, false, false).grid)
   const [dirty, setDirty] = useState(false)
   const [entering, setEntering] = useState(false) // 급여 입력(신규 달) 모드

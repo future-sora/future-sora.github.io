@@ -70,7 +70,7 @@ const TABS: { key: Tab; label: string }[] = [
 
 function Shell() {
   const { email, person, signOut, signIn } = useAuth()
-  const { loading, error, reload, clearError } = useData()
+  const { loaded, loading, error, reload, clearError } = useData()
   const [tab, setTab] = useState<Tab>('monthly')
 
   async function retryLogin() {
@@ -112,7 +112,7 @@ function Shell() {
         ))}
       </nav>
 
-      {loading && <p className="muted">불러오는 중…</p>}
+      {loaded && loading && <p className="muted">불러오는 중…</p>}
       {error && (
         <div className="error-banner">
           <span className="error">오류: {error}</span>
@@ -134,15 +134,25 @@ function Shell() {
       )}
 
       <main className="content">
-        <ErrorBoundary>
-          {tab === 'monthly' && <MonthlyView />}
-          {tab === 'dashboard' && (
-            <Suspense fallback={<p className="muted">차트 로딩…</p>}>
-              <Dashboard />
-            </Suspense>
-          )}
-          {tab === 'assets' && <AssetsGoals />}
-        </ErrorBoundary>
+        {/* 첫 로드 전 빈 배열은 '데이터 없음'이 아니므로 화면 대신 로딩을 보여준다(실패하면 위 오류 배너만). */}
+        {loaded ? (
+          <ErrorBoundary>
+            {tab === 'monthly' && <MonthlyView />}
+            {tab === 'dashboard' && (
+              <Suspense fallback={<p className="muted">차트 로딩…</p>}>
+                <Dashboard />
+              </Suspense>
+            )}
+            {tab === 'assets' && <AssetsGoals />}
+          </ErrorBoundary>
+        ) : (
+          !error && (
+            <div className="initial-loading" role="status">
+              <img className="loading-img" src="/img/char-head.png" alt="" />
+              <p className="muted">불러오는 중…</p>
+            </div>
+          )
+        )}
       </main>
     </div>
   )

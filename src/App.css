@@ -686,6 +686,14 @@ tr[draggable='true'],
   font-weight: 600;
   color: var(--text-h);
 }
+/* 첫 데이터 로드 중(본문 자리, 오버레이 없이) */
+.initial-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 2.25rem 0;
+}
 @keyframes bob {
   0%,
   100% {
