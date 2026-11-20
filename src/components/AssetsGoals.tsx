@@ -287,6 +287,13 @@ export function AssetsGoals() {
     if (kind === ISA_KIND) return isaVal
     return PERSONS.reduce((s, p) => s + sumAsset(assets, kind, p), 0)
   }
+  // 진행률 원본이 있는 자산 종류(시트에 행이 있는 것). 없으면 0%가 아니라 '데이터 없음'.
+  const assetKindsWithData = useMemo(
+    () => new Set(assets.map((a) => a.kind).filter((k) => k !== ISA_KIND)),
+    [assets],
+  )
+  // ISA 평가에 수익률이 빠진 사람이 있나(빠지면 0%로 계산되어 원금만 잡힘).
+  const isaRateMissing = PERSONS.some((p) => !rates.some((r) => r.person === p))
 
   function setGoalField(rowId: string, field: 'kind' | 'targetAmount' | 'targetDate', value: string) {
     setGoalRows((rs) => rs.map((r) => (r.id === rowId ? { ...r, [field]: value } : r)))
@@ -335,8 +342,8 @@ export function AssetsGoals() {
   }
 
   const goalKindOptions = useMemo(
-    () => [...new Set([ISA_KIND, ...kinds])],
-    [kinds],
+    () => [ISA_KIND, ...assetKindsWithData],
+    [assetKindsWithData],
   )
 
   return (
@@ -581,7 +588,16 @@ export function AssetsGoals() {
                   </td>
                 ) : (
                   <td className="num">
-                    {fmtMoney(cur)} ({pct.toFixed(1)}%)
+                    {row.kind !== ISA_KIND && !assetKindsWithData.has(row.kind) ? (
+                      <span className="muted">자산 데이터 없음</span>
+                    ) : (
+                      <>
+                        {fmtMoney(cur)} ({pct.toFixed(1)}%)
+                        {row.kind === ISA_KIND && isaRateMissing && (
+                          <span className="muted"> · 수익률 미입력</span>
+                        )}
+                      </>
+                    )}
                   </td>
                 )}
               </tr>
