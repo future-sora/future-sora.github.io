@@ -2,7 +2,8 @@ import { lazy, Suspense, useState } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { DataProvider, useData } from './data/DataContext'
 import { MonthlyView } from './components/MonthlyView'
-import { AssetsGoals } from './components/AssetsGoals'
+import { Assets } from './components/Assets'
+import { Goals } from './components/Goals'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { errMsg } from './lib/util'
 import './App.css'
@@ -12,7 +13,7 @@ const Dashboard = lazy(() =>
   import('./components/Dashboard').then((m) => ({ default: m.Dashboard })),
 )
 
-type Tab = 'monthly' | 'dashboard' | 'assets'
+type Tab = 'goals' | 'monthly' | 'dashboard' | 'assets'
 
 function App() {
   const { token, ready, bootstrapping, signIn } = useAuth()
@@ -63,15 +64,16 @@ function App() {
 }
 
 const TABS: { key: Tab; label: string }[] = [
+  { key: 'goals', label: '목표' },
   { key: 'monthly', label: '월별 입력' },
-  { key: 'assets', label: '자산·목표' },
+  { key: 'assets', label: '자산' },
   { key: 'dashboard', label: '대시보드' },
 ]
 
 function Shell() {
   const { email, person, signOut, signIn } = useAuth()
   const { loaded, loading, error, reload, clearError } = useData()
-  const [tab, setTab] = useState<Tab>('monthly')
+  const [tab, setTab] = useState<Tab>('goals')
 
   async function retryLogin() {
     clearError()
@@ -137,13 +139,14 @@ function Shell() {
         {/* 첫 로드 전 빈 배열은 '데이터 없음'이 아니므로 화면 대신 로딩을 보여준다(실패하면 위 오류 배너만). */}
         {loaded ? (
           <ErrorBoundary>
+            {tab === 'goals' && <Goals />}
             {tab === 'monthly' && <MonthlyView />}
             {tab === 'dashboard' && (
               <Suspense fallback={<p className="muted">차트 로딩…</p>}>
                 <Dashboard />
               </Suspense>
             )}
-            {tab === 'assets' && <AssetsGoals />}
+            {tab === 'assets' && <Assets />}
           </ErrorBoundary>
         ) : (
           !error && (
