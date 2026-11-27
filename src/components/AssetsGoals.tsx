@@ -352,7 +352,7 @@ export function AssetsGoals() {
 
       {/* 자산 */}
       <div className="monthly-top">
-        <h3>자산 (총 {fmtMoney(total)} 만원)</h3>
+        <h3>자산</h3>
         <span className="monthly-actions">
           {editing ? (
             <>
@@ -458,14 +458,22 @@ export function AssetsGoals() {
             </tr>
           ))}
           {!editing && rows.length > 0 && (
-            <tr className="total">
-              <td>합계</td>
-              {PERSONS.map((p) => (
-                <td key={p} className="num">
-                  {fmtMoney(byPerson[p])}
+            <>
+              <tr className="total">
+                <td>합계</td>
+                {PERSONS.map((p) => (
+                  <td key={p} className="num">
+                    {fmtMoney(byPerson[p])}
+                  </td>
+                ))}
+              </tr>
+              <tr className="total">
+                <td>총합</td>
+                <td colSpan={PERSONS.length} className="num">
+                  {fmtMoney(total)}
                 </td>
-              ))}
-            </tr>
+              </tr>
+            </>
           )}
         </tbody>
         {editing && (
