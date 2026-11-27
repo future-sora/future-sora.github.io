@@ -42,6 +42,15 @@
   flex-direction: column;
   gap: 0.9rem;
 }
+.auth-about {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  text-align: left;
+}
+.auth-about p {
+  margin: 0 0 0.5rem;
+}
 .login-btn {
   padding: 0.7rem 1.2rem;
   border: none;

@@ -52,6 +52,21 @@ function App() {
             {error && <p className="error">{error}</p>}
           </div>
         )}
+        {/* 로그인 전에도 앱 정보를 볼 수 있어야 한다(Google OAuth 브랜딩 인증 요건). */}
+        <section className="auth-about">
+          <p>
+            <strong>kakebu(가계부)</strong>는 두 사람이 함께 쓰는 개인용 가계부 웹앱이에요. 월별
+            수입·지출을 입력하면 저축 가능액을 자동으로 집계하고, 자산과 저축 목표 진행률을
+            보여 줘요.
+          </p>
+          <p>
+            Google 로그인은 사용자 본인의 Google 스프레드시트에 가계부 데이터를 읽고 쓰는 데만
+            쓰며, 별도 서버로 데이터를 보내지 않아요.
+          </p>
+          <p>
+            <a href="/privacy.html">개인정보처리방침</a>
+          </p>
+        </section>
       </main>
     )
   }
