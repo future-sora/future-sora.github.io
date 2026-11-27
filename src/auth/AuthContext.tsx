@@ -13,6 +13,7 @@ import {
   isGisLoaded,
   storedValidToken,
   hadStoredSession,
+  rememberAccount,
 } from '../lib/googleAuth'
 import { PERSON_BY_EMAIL, type Person } from '../config'
 
@@ -89,8 +90,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [ready])
 
+  // 로그인된 계정을 기억해 다음 로그인 때 계정 선택을 건너뛴다.
+  useEffect(() => {
+    if (email) rememberAccount(email)
+  }, [email])
+
   async function signIn() {
-    const t = await requestToken('consent')
+    // '' = 처음 한 번만 동의 화면, 이미 동의했으면 팝업이 바로 닫힌다('consent'는 매번 동의 화면).
+    const t = await requestToken('', true)
     setToken(t)
     setEmail(await fetchUserEmail(t))
   }

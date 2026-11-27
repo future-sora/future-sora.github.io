@@ -2,6 +2,7 @@ import { GOOGLE_CLIENT_ID, SCOPES } from '../config'
 import type { TokenClient, TokenResponse } from '../types/gsi'
 
 const STORAGE_KEY = 'kakebu.token'
+const HINT_KEY = 'kakebu.account' // 마지막 로그인 이메일 — 다음 로그인 때 계정 선택을 건너뛴다
 
 let tokenClient: TokenClient | null = null
 let accessToken: string | null = null
@@ -53,6 +54,23 @@ function restore(): void {
 }
 restore()
 
+/** 로그인한 계정 이메일을 기억한다(다음 토큰 요청의 login_hint). */
+export function rememberAccount(email: string): void {
+  try {
+    localStorage.setItem(HINT_KEY, email)
+  } catch {
+    /* 스토리지 불가 — 힌트 없이 동작 */
+  }
+}
+
+function accountHint(): string | undefined {
+  try {
+    return localStorage.getItem(HINT_KEY) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function isGisLoaded(): boolean {
   return typeof window !== 'undefined' && !!window.google
 }
@@ -94,13 +112,16 @@ function ensureClient(): TokenClient {
 }
 
 /**
- * 토큰 요청. prompt: 'consent'=동의창, ''=세션 있으면 무팝업, 'none'=UI 없이(없으면 에러).
- * 무팝업 요청은 동시 호출을 하나로 합치고, consent는 진행 중 무팝업 요청을 대체한다.
+ * 토큰 요청. prompt: 'consent'=동의창, ''=처음 한 번만 동의(이후엔 팝업이 바로 닫힘), 'none'=UI 없이(없으면 에러).
+ * 기억해 둔 계정이 있으면 login_hint로 넘겨 계정 선택을 건너뛴다.
+ * 자동 갱신 요청은 동시 호출을 하나로 합치고, 사용자 요청(interactive, 로그인 버튼)은
+ * 진행 중 요청에 합류하지 않고 항상 새 요청으로 그것을 대체한다.
  */
 export function requestToken(
   prompt: '' | 'none' | 'consent' = 'consent',
+  interactive = prompt === 'consent',
 ): Promise<string> {
-  const silent = prompt !== 'consent'
+  const silent = !interactive
   if (silent && silentInflight) return silentInflight
   const p = new Promise<string>((resolve, reject) => {
     let client: TokenClient
@@ -111,7 +132,8 @@ export function requestToken(
     }
     if (pending) settleReject(new Error('superseded'))
     pending = { resolve, reject }
-    client.requestAccessToken({ prompt })
+    const hint = accountHint()
+    client.requestAccessToken(hint ? { prompt, login_hint: hint } : { prompt })
   })
   if (silent) {
     silentInflight = p
@@ -137,6 +159,11 @@ export function signOut(): void {
   expiresAt = 0
   everSignedIn = false
   persist()
+  try {
+    localStorage.removeItem(HINT_KEY) // 로그아웃하면 다른 계정으로 고를 수 있게
+  } catch {
+    /* 무시 */
+  }
 }
 
 export async function fetchUserEmail(token: string): Promise<string | null> {

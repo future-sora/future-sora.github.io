@@ -12,6 +12,7 @@ export interface TokenClient {
   callback: (resp: TokenResponse) => void
   requestAccessToken: (overrideConfig?: {
     prompt?: '' | 'none' | 'consent' | 'select_account'
+    login_hint?: string
   }) => void
 }
 
