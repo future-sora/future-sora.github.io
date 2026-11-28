@@ -3,58 +3,91 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>개인정보처리방침 · 가계부</title>
+    <title>개인정보처리방침 · kakebu</title>
     <style>
-      body {
-        max-width: 640px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-        font-family: system-ui, -apple-system, sans-serif;
-        line-height: 1.7;
-        color: #243b53;
-        background: #f5f1eb;
+      :root {
+        --text: #5c5650;
+        --text-h: #2b2a2e;
+        --muted: #998f85;
+        --border: #e1d9cc;
+        --bg: #f5f1eb;
+        --surface: #fffdf9;
       }
-      h1 { font-size: 1.4rem; }
-      h2 { font-size: 1.05rem; margin-top: 1.6rem; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 3rem 1rem;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.75 'Pretendard', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif;
+      }
+      article {
+        max-width: 620px;
+        margin: 0 auto;
+        padding: 2.25rem 2rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      header { margin-bottom: 1.75rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+      .app { margin: 0 0 0.25rem; color: var(--muted); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+      h1 { margin: 0; color: var(--text-h); font-size: 1.35rem; font-weight: 700; }
+      .date { margin: 0.35rem 0 0; color: var(--muted); font-size: 12px; }
+      h2 { margin: 1.6rem 0 0.4rem; color: var(--text-h); font-size: 0.95rem; font-weight: 600; }
+      p, ul { margin: 0 0 0.6rem; }
+      ul { padding-left: 1.1rem; }
+      li { margin-bottom: 0.25rem; }
+      code { font-size: 12px; background: var(--bg); padding: 0.05rem 0.3rem; border-radius: 4px; }
+      a { color: var(--text-h); text-decoration: none; border-bottom: 1px solid var(--border); }
+      a:hover { border-bottom-color: var(--muted); }
+      footer { max-width: 620px; margin: 1.25rem auto 0; text-align: center; font-size: 12px; }
+      footer a { color: var(--muted); }
     </style>
   </head>
   <body>
-    <h1>개인정보처리방침</h1>
-    <p>시행일: 2026-11-28</p>
-    <p>
-      이 가계부 앱(https://future-sora.github.io)은 두 명이 함께 쓰는 개인용 가계부입니다.
-      별도의 서버가 없으며, 모든 데이터는 사용자 본인의 Google 스프레드시트에만 저장됩니다.
-    </p>
+    <article>
+      <header>
+        <p class="app">kakebu</p>
+        <h1>개인정보처리방침</h1>
+        <p class="date">시행일 2026년 11월 28일</p>
+      </header>
 
-    <h2>1. 수집·이용하는 정보</h2>
-    <ul>
-      <li>Google 계정 이메일 주소: 로그인한 사용자가 누구인지 화면에 표시하는 데만 씁니다.</li>
-      <li>
-        Google 스프레드시트 접근 권한(<code>spreadsheets</code>): 사용자가 입력한 수입·지출·자산·목표를
-        지정된 스프레드시트에 읽고 쓰는 데만 씁니다.
-      </li>
-    </ul>
+      <p>
+        kakebu(https://future-sora.github.io)는 두 사람이 함께 사용하는 개인용 가계부입니다. 별도의
+        서버를 운영하지 않으며, 모든 데이터는 사용자 본인의 Google 스프레드시트에만 저장됩니다.
+      </p>
 
-    <h2>2. 저장과 보관</h2>
-    <ul>
-      <li>앱은 데이터를 자체 서버로 전송하거나 보관하지 않습니다.</li>
-      <li>
-        로그인 유지를 위해 Google이 발급한 접근 토큰(약 1시간 유효)과 마지막 로그인 이메일을
-        사용자 브라우저의 localStorage에만 저장합니다. 로그아웃하면 삭제됩니다.
-      </li>
-    </ul>
+      <h2>1. 수집·이용하는 정보</h2>
+      <ul>
+        <li>Google 계정 이메일 주소: 로그인한 사용자를 화면에 표시하는 데에만 사용합니다.</li>
+        <li>
+          Google 스프레드시트 접근 권한(<code>spreadsheets</code>): 사용자가 입력한 수입·지출·자산·목표를
+          지정된 스프레드시트에 읽고 쓰는 데에만 사용합니다.
+        </li>
+      </ul>
 
-    <h2>3. 제3자 제공</h2>
-    <p>수집한 정보를 제3자에게 제공하거나 판매하지 않으며, 광고·분석 도구를 쓰지 않습니다.</p>
+      <h2>2. 저장 및 보관</h2>
+      <ul>
+        <li>데이터를 자체 서버로 전송하거나 보관하지 않습니다.</li>
+        <li>
+          로그인 유지를 위해 Google이 발급한 접근 토큰(약 1시간 유효)과 마지막 로그인 이메일을 사용자
+          브라우저의 localStorage에만 저장하며, 로그아웃 시 삭제합니다.
+        </li>
+      </ul>
 
-    <h2>4. 권한 철회</h2>
-    <p>
-      앱에서 로그아웃하거나, Google 계정의
-      <a href="https://myaccount.google.com/permissions">서드파티 앱 및 서비스</a>에서
-      이 앱의 접근 권한을 언제든 삭제할 수 있습니다.
-    </p>
+      <h2>3. 제3자 제공</h2>
+      <p>수집한 정보를 제3자에게 제공하거나 판매하지 않으며, 광고·분석 도구를 사용하지 않습니다.</p>
 
-    <h2>5. 문의</h2>
-    <p>Google 로그인 동의 화면에 표시된 사용자 지원 이메일로 문의해 주세요.</p>
+      <h2>4. 권한 철회</h2>
+      <p>
+        앱에서 로그아웃하거나 Google 계정의
+        <a href="https://myaccount.google.com/permissions">서드파티 앱 및 서비스</a>에서 이 앱의 접근
+        권한을 언제든지 삭제할 수 있습니다.
+      </p>
+
+      <h2>5. 문의</h2>
+      <p>Google 로그인 동의 화면에 표시된 사용자 지원 이메일로 문의하시기 바랍니다.</p>
+    </article>
+    <footer><a href="/">kakebu로 돌아가기</a></footer>
   </body>
 </html>
