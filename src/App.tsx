@@ -52,7 +52,7 @@ function App() {
         )}
         {/* 로그인 전 앱 설명 + 개인정보처리방침 링크(Google OAuth 브랜딩 인증 요건). */}
         <footer className="auth-about">
-          <p>kakebu는 두 사람의 월별 수입·지출, 자산, 저축 목표를 본인의 Google 스프레드시트에 기록하고 집계하는 개인용 가계부입니다.</p>
+          <p>kakebu는 월별 수입·지출, 자산, 저축 목표를 Google 스프레드시트에 기록하고 집계하는 가계부입니다. 혼자 쓰거나 가족·파트너와 함께 쓸 수 있습니다.</p>
           <a href="/privacy.html">개인정보처리방침</a>
         </footer>
       </main>
