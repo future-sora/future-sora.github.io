@@ -19,19 +19,11 @@
   </head>
   <body>
     <div id="root">
-      <!-- 자바스크립트 실행 전 기본 내용(React가 마운트하면 대체됨). Google OAuth 브랜딩 인증용 앱 소개. -->
-      <main style="max-width: 400px; margin: 11vh auto; padding: 1rem; font-family: system-ui, sans-serif">
-        <h1>가계부 (kakebu)</h1>
-        <p>
-          kakebu(가계부)는 두 사람이 함께 쓰는 개인용 가계부 웹앱이에요. 월별 수입·지출을 입력하면
-          저축 가능액을 자동으로 집계하고, 자산과 저축 목표 진행률을 보여 줘요.
-        </p>
-        <p>
-          Google 로그인은 사용자 본인의 Google 스프레드시트에 가계부 데이터를 읽고 쓰는 데만 쓰며,
-          별도 서버로 데이터를 보내지 않아요.
-        </p>
-        <p><a href="/privacy.html">개인정보처리방침</a></p>
-      </main>
+      <!-- JS 실행 전 기본 내용(React 마운트 시 대체). Google OAuth 브랜딩 인증용 앱 설명. -->
+      <p style="max-width: 360px; margin: 40vh auto 0; padding: 0 1rem; text-align: center; font: 12px/1.5 system-ui, sans-serif; color: #998f85">
+        kakebu는 두 사람의 월별 수입·지출, 자산, 저축 목표를 본인의 Google 스프레드시트에 기록하고 집계하는 개인용 가계부입니다.
+        <a href="/privacy.html" style="color: inherit">개인정보처리방침</a>
+      </p>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

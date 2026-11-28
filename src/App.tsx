@@ -34,13 +34,11 @@ function App() {
         <div className="auth-brand">
           <img className="auth-photo" src="/img/char-login.png" alt="우리 커플 캐릭터" />
           <h1>가계부</h1>
-          <p className="auth-tagline">우리들의 귀여운 자산관리 ✈️</p>
         </div>
         {bootstrapping ? (
           <p className="muted">로그인 확인 중…</p>
         ) : (
           <div className="auth-card">
-            <p>구글 계정으로 로그인하세요</p>
             <button
               type="button"
               className="login-btn"
@@ -52,21 +50,11 @@ function App() {
             {error && <p className="error">{error}</p>}
           </div>
         )}
-        {/* 로그인 전에도 앱 정보를 볼 수 있어야 한다(Google OAuth 브랜딩 인증 요건). */}
-        <section className="auth-about">
-          <p>
-            <strong>kakebu(가계부)</strong>는 두 사람이 함께 쓰는 개인용 가계부 웹앱이에요. 월별
-            수입·지출을 입력하면 저축 가능액을 자동으로 집계하고, 자산과 저축 목표 진행률을
-            보여 줘요.
-          </p>
-          <p>
-            Google 로그인은 사용자 본인의 Google 스프레드시트에 가계부 데이터를 읽고 쓰는 데만
-            쓰며, 별도 서버로 데이터를 보내지 않아요.
-          </p>
-          <p>
-            <a href="/privacy.html">개인정보처리방침</a>
-          </p>
-        </section>
+        {/* 로그인 전 앱 설명 + 개인정보처리방침 링크(Google OAuth 브랜딩 인증 요건). */}
+        <footer className="auth-about">
+          <p>kakebu는 두 사람의 월별 수입·지출, 자산, 저축 목표를 본인의 Google 스프레드시트에 기록하고 집계하는 개인용 가계부입니다.</p>
+          <a href="/privacy.html">개인정보처리방침</a>
+        </footer>
       </main>
     )
   }

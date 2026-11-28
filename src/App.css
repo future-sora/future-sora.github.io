@@ -27,10 +27,6 @@
   font-size: 2.1rem;
   margin: 0.4rem 0 0;
 }
-.auth-tagline {
-  color: var(--muted);
-  font-size: 0.95rem;
-}
 .auth-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -43,13 +39,22 @@
   gap: 0.9rem;
 }
 .auth-about {
+  margin-top: 1.2rem;
   color: var(--muted);
-  font-size: 0.85rem;
-  line-height: 1.6;
-  text-align: left;
+  font-size: 0.72rem;
+  line-height: 1.5;
 }
 .auth-about p {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.3rem;
+}
+.auth-about a {
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+}
+.auth-about a:hover {
+  color: var(--text);
+  border-bottom-color: var(--muted);
 }
 .login-btn {
   padding: 0.7rem 1.2rem;
